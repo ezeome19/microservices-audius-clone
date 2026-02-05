@@ -1,0 +1,23 @@
+{
+    "name": "analytics-service",
+    "version": "1.0.0",
+    "description": "Analytics and metrics microservice (Admin Only) with TimescaleDB",
+    "main": "src/app.js",
+    "scripts": {
+        "dev": "nodemon src/app.js",
+        "start": "node src/app.js"
+    },
+    "dependencies": {
+        "@spotify-backend/shared": "workspace:*",
+        "compression": "^1.8.1",
+        "dotenv": "^17.2.3",
+        "express": "^4.18.2",
+        "helmet": "^8.1.0",
+        "pg": "^8.11.3",
+        "sequelize": "^6.37.7",
+        "winston": "^3.18.3"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.11"
+    }
+}

@@ -1,0 +1,40 @@
+{
+    "name": "auth-service",
+    "version": "1.0.0",
+    "description": "Authentication and authorization microservice",
+    "main": "src/app.js",
+    "scripts": {
+        "dev": "nodemon src/app.js",
+        "start": "node src/app.js",
+        "test": "jasmine --verbose",
+        "test:unit": "jasmine tests/unit/**/*.test.js --verbose",
+        "test:integration": "jasmine tests/integration/**/*.test.js --verbose"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@spotify-backend/shared": "workspace:*",
+        "bcrypt": "^6.0.0",
+        "compression": "^1.8.1",
+        "crypto": "^1.0.1",
+        "dotenv": "^17.2.3",
+        "express": "^4.18.2",
+        "helmet": "^8.1.0",
+        "joi": "^18.0.2",
+        "jsonwebtoken": "^9.0.2",
+        "lodash": "^4.17.21",
+        "nodemailer": "^7.0.10",
+        "pg": "^8.11.3",
+        "pg-hstore": "^2.3.4",
+        "sequelize": "^6.37.7",
+        "winston": "^3.18.3"
+    },
+    "devDependencies": {
+        "axios": "^1.13.2",
+        "jasmine": "^5.13.0",
+        "nodemon": "^3.1.11",
+        "rewire": "^9.0.1",
+        "supertest": "^7.1.4"
+    }
+}

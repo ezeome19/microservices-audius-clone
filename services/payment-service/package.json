@@ -1,0 +1,27 @@
+{
+    "name": "payment-service",
+    "version": "1.0.0",
+    "description": "Payment and subscription microservice (Admin Only)",
+    "main": "src/app.js",
+    "scripts": {
+        "dev": "nodemon src/app.js",
+        "start": "node src/app.js"
+    },
+    "dependencies": {
+        "@spotify-backend/shared": "workspace:*",
+        "axios": "^1.13.2",
+        "compression": "^1.8.1",
+        "dotenv": "^17.2.3",
+        "express": "^4.18.2",
+        "express-rate-limit": "^8.2.1",
+        "helmet": "^8.1.0",
+        "pg": "^8.17.2",
+        "sanitize-html": "^2.17.0",
+        "sequelize": "^6.37.7",
+        "winston": "^3.18.3"
+    },
+    "devDependencies": {
+        "jasmine": "^5.13.0",
+        "nodemon": "^3.1.11"
+    }
+}

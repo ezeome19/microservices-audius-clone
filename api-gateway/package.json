@@ -1,0 +1,31 @@
+{
+    "name": "api-gateway",
+    "version": "1.0.0",
+    "description": "API Gateway for Audius Clone microservices",
+    "main": "src/app.js",
+    "scripts": {
+        "start": "node src/app.js",
+        "dev": "nodemon src/app.js",
+        "test": "jasmine --verbose",
+        "test:watch": "nodemon --exec jasmine"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@spotify-backend/shared": "workspace:*",
+        "compression": "^1.8.1",
+        "cookie-parser": "^1.4.7",
+        "csurf": "^1.11.0",
+        "dotenv": "^17.2.3",
+        "express": "^4.18.2",
+        "helmet": "^8.1.0",
+        "http-proxy-middleware": "^3.0.3",
+        "winston": "^3.18.3"
+    },
+    "devDependencies": {
+        "jasmine": "^5.13.0",
+        "nodemon": "^3.1.11",
+        "supertest": "^7.1.4"
+    }
+}

@@ -1,0 +1,38 @@
+{
+    "name": "audius-clone",
+    "version": "1.0.0",
+    "description": "Audius-inspired direct-to-artist music streaming platform with microservices architecture",
+    "private": true,
+    "scripts": {
+        "dev:auth": "pnpm --filter auth-service dev",
+        "dev:music": "pnpm --filter music-catalog-service dev",
+        "dev:streaming": "pnpm --filter streaming-service dev",
+        "dev:social": "pnpm --filter social-service dev",
+        "dev:payment": "pnpm --filter payment-service dev",
+        "dev:recommendations": "pnpm --filter recommendations-service dev",
+        "dev:analytics": "pnpm --filter analytics-service dev",
+        "dev:gateway": "pnpm --filter api-gateway dev",
+        "dev:frontend": "pnpm --filter audius-clone-frontend dev",
+        "dev:all": "concurrently \"pnpm dev:auth\" \"pnpm dev:music\" \"pnpm dev:streaming\" \"pnpm dev:social\" \"pnpm dev:payment\" \"pnpm dev:recommendations\" \"pnpm dev:analytics\" \"pnpm dev:gateway\" \"pnpm dev:frontend\"",
+        "test": "pnpm -r test",
+        "test:unit": "pnpm -r test:unit",
+        "test:integration": "pnpm -r test:integration"
+    },
+    "keywords": [
+        "microservices",
+        "audius",
+        "music",
+        "streaming",
+        "artist-first",
+        "direct-to-artist",
+        "decentralized"
+    ],
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "concurrently": "^8.2.2",
+        "jasmine": "^5.13.0",
+        "nodemon": "^3.1.11",
+        "supertest": "^7.2.2"
+    }
+}

@@ -1,0 +1,71 @@
+<!-- Comment Modal -->
+<div id="commentModal" class="modal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1100; align-items: center; justify-content: center;">
+    <div class="modal-content"
+        style="background: var(--bg-card); border-radius: 16px; padding: 32px; max-width: 600px; width: 90%; max-height: 80vh; display: flex; flex-direction: column;">
+        <div
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-shrink: 0;">
+            <h2 id="commentModalTitle" style="margin: 0;">Comments</h2>
+            <button class="modal-close"
+                style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+        </div>
+
+        <!-- Comments List -->
+        <div id="commentsList"
+            style="flex: 1; overflow-y: auto; margin-bottom: 24px; display: flex; flex-direction: column; gap: 16px; padding-right: 8px;">
+            <!-- Comments will be loaded here -->
+            <div style="text-align: center; color: var(--text-muted); padding: 20px;">
+                Loading comments...
+            </div>
+        </div>
+
+        <!-- Post Comment Form -->
+        <div style="flex-shrink: 0; border-top: 1px solid var(--border-color); padding-top: 24px;">
+            <div style="display: flex; gap: 12px;">
+                <textarea id="newCommentContent" placeholder="Write a comment..."
+                    style="flex: 1; padding: 12px; border-radius: 8px; border: 2px solid var(--border-color); background: var(--bg-secondary); resize: none; height: 80px;"></textarea>
+                <button id="postCommentBtn" class="btn btn-primary"
+                    style="align-self: flex-end; padding: 12px 24px;">Post</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .comment-item {
+        display: flex;
+        gap: 12px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--bg-secondary);
+    }
+
+    .comment-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--bg-secondary);
+        flex-shrink: 0;
+    }
+
+    .comment-body {
+        flex: 1;
+    }
+
+    .comment-user {
+        font-weight: 700;
+        font-size: 0.9rem;
+        margin-bottom: 4px;
+    }
+
+    .comment-text {
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        line-height: 1.4;
+    }
+
+    .comment-date {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+</style>
