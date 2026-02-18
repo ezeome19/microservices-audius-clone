@@ -1,0 +1,17 @@
+node_modules/
+.env
+*.log
+.DS_Store
+dist/
+build/
+coverage/
+*.mp3
+*.wav
+*.flac
+diag_coins.js
+*.sql
+*.txt
+*.test.js
+migrations/
+music-files/
+passpgadmin.txt

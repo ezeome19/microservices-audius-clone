@@ -1,0 +1,10 @@
+<div class="artist-card">
+    <img src="{{this.profileImageUrl}}" alt="{{this.name}}" class="artist-image"
+        onerror="this.src='https://placehold.co/400?text=Artist'" />
+    <div class="artist-info">
+        <h4>{{name}}</h4>
+        {{#if followerCount}}
+        <p class="artist-stats">{{followerCount}} followers</p>
+        {{/if}}
+    </div>
+</div>

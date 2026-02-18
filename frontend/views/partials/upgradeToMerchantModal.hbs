@@ -1,0 +1,153 @@
+<div id="upgradeToMerchantModal" class="modal"
+    style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.8); backdrop-filter: blur(5px);">
+    <div class="modal-content"
+        style="background-color: var(--surface-color); margin: 10% auto; padding: 32px; border: 1px solid var(--border-color); width: 100%; max-width: 500px; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h2
+                style="margin: 0; font-size: 1.5rem; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                Become an Artist</h2>
+            <span class="close-modal" onclick="closeUpgradeModal()"
+                style="color: var(--text-secondary); font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+        </div>
+
+        <div style="margin-bottom: 24px;">
+            <p style="color: var(--text-secondary); line-height: 1.6;">
+                Unlock the full power of Audius Clone. Upload tracks, build your fanbase, and earn directly from your
+                listeners.
+            </p>
+            <ul style="color: var(--text-secondary); margin-top: 16px; padding-left: 20px;">
+                <li style="margin-bottom: 8px;">Upload unlimited tracks</li>
+                <li style="margin-bottom: 8px;">Create your own Artist Coin</li>
+                <li style="margin-bottom: 8px;">Receive tips and payments</li>
+                <li>Access detailed analytics</li>
+            </ul>
+        </div>
+
+        <form id="upgradeForm" onsubmit="handleUpgradeSubmit(event)">
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="artistName"
+                    style="display: block; margin-bottom: 8px; color: var(--text-primary); font-weight: 500;">Artist
+                    Name *</label>
+                <input type="text" id="artistName" name="artistName" required class="form-control"
+                    style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--background-color); color: var(--text-primary);">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="recordLabel"
+                    style="display: block; margin-bottom: 8px; color: var(--text-primary); font-weight: 500;">Record
+                    Label (Optional)</label>
+                <input type="text" id="recordLabel" name="recordLabel" class="form-control"
+                    style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--background-color); color: var(--text-primary);">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="website"
+                    style="display: block; margin-bottom: 8px; color: var(--text-primary); font-weight: 500;">Website
+                    (Optional)</label>
+                <input type="url" id="website" name="website" class="form-control"
+                    style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--background-color); color: var(--text-primary);">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label for="bio"
+                    style="display: block; margin-bottom: 8px; color: var(--text-primary); font-weight: 500;">Bio
+                    (Optional)</label>
+                <textarea id="bio" name="bio" rows="3" class="form-control"
+                    style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--background-color); color: var(--text-primary); resize: vertical;"></textarea>
+            </div>
+
+            <div
+                style="background: rgba(255, 100, 100, 0.1); border: 1px solid rgba(255, 100, 100, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                <p style="color: #ff6b6b; font-size: 0.9rem; margin: 0;">
+                    <strong>⚠️ Important:</strong> All artist accounts require admin verification before public features
+                    are enabled. This action cannot be undone.
+                </p>
+            </div>
+
+            <div
+                style="background: rgba(204, 27, 27, 0.1); border: 1px solid rgba(204, 27, 27, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 24px;">
+                <p style="color: #CC1B1B; font-size: 0.9rem; margin: 0;">
+                    <strong>🔄 Logout Required:</strong> After upgrading to merchant, you will be automatically logged
+                    out. Please log back in to see your new merchant dashboard with dark red theme and analytics.
+                </p>
+            </div>
+
+            <button type="submit" class="btn btn-primary"
+                style="width: 100%; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: transform 0.2s;">
+                Submit for Verification
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openUpgradeModal() {
+        document.getElementById('upgradeToMerchantModal').style.display = 'block';
+    }
+
+    function closeUpgradeModal() {
+        document.getElementById('upgradeToMerchantModal').style.display = 'none';
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function (event) {
+        const modal = document.getElementById('upgradeToMerchantModal');
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    async function handleUpgradeSubmit(e) {
+        e.preventDefault();
+        const form = e.target;
+        const btn = form.querySelector('button[type="submit"]');
+        const originalText = btn.innerText;
+
+        // Disable button
+        btn.disabled = true;
+        btn.innerText = 'Processing...';
+
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+            const response = await fetch('/api/auth/upgrade-to-merchant', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Authorization header will be handled by cookie or interceptor if needed
+                    // Assuming cookie-based auth for this architecture
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert('Success! Your account has been upgraded to merchant. You will now be logged out. Please log back in to access your merchant dashboard with analytics and dark red theme.');
+
+                // Logout user
+                try {
+                    await fetch('/api/auth/logout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                } catch (logoutError) {
+                    console.error('Logout error:', logoutError);
+                }
+
+                // Clear token and redirect to login
+                localStorage.removeItem('token');
+                window.location.href = '/auth/login';
+            } else {
+                alert(result.message || 'Failed to upgrade account');
+            }
+        } catch (error) {
+            console.error('Upgrade error:', error);
+            alert('An error occurred. Please try again.');
+        } finally {
+            btn.disabled = false;
+            btn.innerText = originalText;
+        }
+    }
+</script>

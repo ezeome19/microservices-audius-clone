@@ -1,0 +1,23 @@
+{
+    "name": "@spotify-backend/shared",
+    "version": "1.0.0",
+    "description": "Shared utilities and middleware for Spotify backend microservices",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"No tests yet\""
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@audius/sdk": "^2.0.0",
+        "axios": "^1.13.2",
+        "express-rate-limit": "^8.2.1",
+        "ioredis": "^5.3.2",
+        "joi": "^18.0.2",
+        "jsonwebtoken": "^9.0.2",
+        "mongoose": "^8.0.3",
+        "sequelize": "^6.37.7",
+        "winston": "^3.18.3"
+    }
+}

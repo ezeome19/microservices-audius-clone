@@ -1,0 +1,155 @@
+<div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo-area" style="margin-bottom: 40px;">
+            <h2
+                style="background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; font-size: 1.5rem;">
+                AUDIUS</h2>
+        </div>
+
+        <nav class="nav-links" style="display: flex; flex-direction: column; gap: 8px;">
+            <a href="/dashboard" class="nav-item"
+                style="color: var(--text-secondary); padding: 10px 0; display: flex; align-items: center; gap: 12px;">
+                <i class="fa-solid fa-chart-line" style="width: 20px;"></i> Dashboard
+            </a>
+            <a href="/analytics" class="nav-item active"
+                style="font-weight: 600; padding: 10px 0; display: flex; align-items: center; gap: 12px;">
+                <i class="fa-solid fa-chart-bar" style="width: 20px;"></i> Analytics
+            </a>
+            <a href="/dashboard#explore" class="nav-item"
+                style="color: var(--text-secondary); padding: 10px 0; display: flex; align-items: center; gap: 12px;">
+                <i class="fa-solid fa-compass" style="width: 20px;"></i> Explore
+            </a>
+            <a href="/settings" class="nav-item"
+                style="color: var(--text-secondary); padding: 10px 0; display: flex; align-items: center; gap: 12px;">
+                <i class="fa-solid fa-gear" style="width: 20px;"></i> Settings
+            </a>
+        </nav>
+
+        <div class="user-area" style="margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border-color);">
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">{{user.name}}</p>
+            <p style="color: var(--text-muted); font-size: 0.8rem;">Merchant Account</p>
+            <a href="/auth/logout"
+                style="font-size: 0.8rem; color: var(--text-muted); margin-top: 10px; display: block;">Log Out</a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" style="padding: 40px;">
+        <div class="analytics-container">
+            <h1
+                style="font-size: 2.5rem; font-weight: 900; margin-bottom: 32px; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                Analytics Dashboard
+            </h1>
+
+            <!-- Key Metrics -->
+            <div class="metrics-grid"
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-bottom: 40px;">
+                <!-- Total Plays -->
+                <div class="metric-card"
+                    style="background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <h3
+                            style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">
+                            Total Plays</h3>
+                        <i class="fa-solid fa-play" style="color: var(--accent-primary); font-size: 1.5rem;"></i>
+                    </div>
+                    <p style="font-size: 2.5rem; font-weight: 900; color: var(--text-primary); margin-bottom: 8px;">
+                        {{user.totalPlays}}</p>
+                    <p style="color: var(--text-muted); font-size: 0.85rem;">
+                        <span style="color: #4CAF50;">↑ 12.5%</span> from last month
+                    </p>
+                </div>
+
+                <!-- Followers -->
+                <div class="metric-card"
+                    style="background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <h3
+                            style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">
+                            Followers</h3>
+                        <i class="fa-solid fa-users" style="color: var(--accent-primary); font-size: 1.5rem;"></i>
+                    </div>
+                    <p style="font-size: 2.5rem; font-weight: 900; color: var(--text-primary); margin-bottom: 8px;">
+                        {{user.followerCount}}</p>
+                    <p style="color: var(--text-muted); font-size: 0.85rem;">
+                        <span style="color: #4CAF50;">↑ 8.3%</span> from last month
+                    </p>
+                </div>
+
+                <!-- Revenue (Placeholder) -->
+                <div class="metric-card"
+                    style="background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <h3
+                            style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">
+                            Revenue</h3>
+                        <i class="fa-solid fa-dollar-sign" style="color: var(--accent-primary); font-size: 1.5rem;"></i>
+                    </div>
+                    <p style="font-size: 2.5rem; font-weight: 900; color: var(--text-primary); margin-bottom: 8px;">$0
+                    </p>
+                    <p style="color: var(--text-muted); font-size: 0.85rem;">
+                        Coming soon
+                    </p>
+                </div>
+
+                <!-- Engagement -->
+                <div class="metric-card"
+                    style="background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <h3
+                            style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">
+                            Engagement</h3>
+                        <i class="fa-solid fa-heart" style="color: var(--accent-primary); font-size: 1.5rem;"></i>
+                    </div>
+                    <p style="font-size: 2.5rem; font-weight: 900; color: var(--text-primary); margin-bottom: 8px;">--
+                    </p>
+                    <p style="color: var(--text-muted); font-size: 0.85rem;">
+                        Likes, comments, shares
+                    </p>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 40px;">
+                <!-- Plays Over Time Chart -->
+                <div class="chart-card"
+                    style="background: var(--bg-card); padding: 32px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 24px; color: var(--text-primary);">
+                        Plays Over Time</h2>
+                    <div
+                        style="height: 300px; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
+                        <p>Chart visualization coming soon</p>
+                    </div>
+                </div>
+
+                <!-- Top Tracks -->
+                <div class="chart-card"
+                    style="background: var(--bg-card); padding: 32px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 24px; color: var(--text-primary);">
+                        Top Tracks</h2>
+                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                        <p style="color: var(--text-muted); text-align: center; padding: 40px 0;">No tracks uploaded yet
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="activity-card"
+                style="background: var(--bg-card); padding: 32px; border-radius: 12px; border: 1px solid var(--border-color);">
+                <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 24px; color: var(--text-primary);">
+                    Recent Activity</h2>
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <p style="color: var(--text-muted); text-align: center; padding: 40px 0;">No recent activity</p>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="/public/js/theme-switcher.js"></script>

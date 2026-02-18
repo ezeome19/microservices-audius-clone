@@ -1,0 +1,389 @@
+<div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo-area" style="margin-bottom: 40px;">
+            <h2
+                style="background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; font-size: 1.5rem;">
+                AUDIUS</h2>
+        </div>
+
+        <nav class="nav-links" style="display: flex; flex-direction: column; gap: 8px;">
+            <a href="/dashboard" class="nav-item"
+                style="color: var(--text-secondary); padding: 10px 0; display: flex; align-items: center; gap: 12px;">
+                <i class="fa-solid fa-chart-line" style="width: 20px;"></i> Trending
+            </a>
+            <a href="/dashboard#explore" class="nav-item"
+                style="color: var(--text-secondary); padding: 10px 0; display: flex; align-items: center; gap: 12px;">
+                <i class="fa-solid fa-compass" style="width: 20px;"></i> Explore
+            </a>
+            <a href="/dashboard#favorites" class="nav-item"
+                style="color: var(--text-secondary); padding: 10px 0; display: flex; align-items: center; gap: 12px;">
+                <i class="fa-solid fa-heart" style="width: 20px;"></i> Favorites
+            </a>
+            <a href="/dashboard#playlists" class="nav-item"
+                style="color: var(--text-secondary); padding: 10px 0; display: flex; align-items: center; gap: 12px;">
+                <i class="fa-solid fa-list-ul" style="width: 20px;"></i> Playlists
+            </a>
+            <a href="/settings" class="nav-item active"
+                style="font-weight: 600; padding: 10px 0; display: flex; align-items: center; gap: 12px;">
+                <i class="fa-solid fa-gear" style="width: 20px;"></i> Settings
+            </a>
+        </nav>
+
+        <div class="user-area" style="margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border-color);">
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">Start Listening</p>
+            <div style="margin-top: 10px; margin-bottom: 10px;">
+                <button class="btn btn-primary" style="width: 100%; font-size: 0.9rem; padding: 8px;">Subscribe to
+                    Premium</button>
+            </div>
+            <a href="/auth/logout" style="font-size: 0.8rem; color: var(--text-muted);">Log Out</a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="settings-container" style="max-width: 800px; margin: 0 auto; padding: 24px;">
+            <h1
+                style="margin-bottom: 32px; font-size: 2rem; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                Settings</h1>
+
+            <div class="settings-tabs"
+                style="display: flex; gap: 32px; border-bottom: 2px solid var(--border-color); margin-bottom: 32px;">
+                <button class="tab-btn active" onclick="switchTab('profile')"
+                    style="background: none; border: none; padding: 12px 0; color: var(--accent-primary); font-weight: 700; cursor: pointer; border-bottom: 3px solid var(--accent-primary); margin-bottom: -2px; transition: all 0.2s; font-size: 0.95rem;">Profile</button>
+                <button class="tab-btn" onclick="switchTab('account')"
+                    style="background: none; border: none; padding: 12px 0; color: var(--text-secondary); font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 0.95rem;">Account</button>
+                <button class="tab-btn" onclick="switchTab('notifications')"
+                    style="background: none; border: none; padding: 12px 0; color: var(--text-secondary); font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 0.95rem;">Notifications</button>
+            </div>
+
+            <!-- Profile Tab -->
+            <div id="profile-tab" class="tab-content" style="display: block;">
+                <div class="card"
+                    style="background: var(--bg-card); padding: 32px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);">
+                    <h2 style="margin-bottom: 24px; font-size: 1.25rem; color: var(--text-primary);">Public Profile</h2>
+
+                    <form id="profile-form">
+                        <div style="display: flex; align-items: center; gap: 24px; margin-bottom: 24px;">
+                            <div
+                                style="width: 100px; height: 100px; border-radius: 50%; background: var(--background-color); overflow: hidden; border: 1px solid var(--border-color);">
+                                <img src="{{user.profilePicture}}" alt="Profile"
+                                    style="width: 100%; height: 100%; object-fit: cover;"
+                                    onerror="this.src='https://ui-avatars.com/api/?name={{user.name}}&background=random'">
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-secondary" style="margin-bottom: 8px;">Change
+                                    Photo</button>
+                                <p style="font-size: 0.8rem; color: var(--text-secondary);">Recommended: 400x400px</p>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label
+                                style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-weight: 600; font-size: 0.9rem;">Display
+                                Name</label>
+                            <input type="text" name="name" value="{{user.name}}" class="form-control"
+                                style="width: 100%; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; font-size: 0.95rem;">
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label
+                                style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-weight: 600; font-size: 0.9rem;">Bio</label>
+                            <textarea name="bio" rows="3" class="form-control"
+                                style="width: 100%; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; font-size: 0.95rem;">{{user.bio}}</textarea>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 24px;">
+                            <label
+                                style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-weight: 600; font-size: 0.9rem;">Location</label>
+                            <input type="text" name="location" value="{{user.location}}" class="form-control"
+                                style="width: 100%; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; font-size: 0.95rem;">
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label
+                                style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-weight: 600; font-size: 0.9rem;">Age</label>
+                            <input type="number" name="age" value="{{user.age}}" min="13" max="120" class="form-control"
+                                style="width: 100%; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; font-size: 0.95rem;">
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label
+                                style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-weight: 600; font-size: 0.9rem;">Gender</label>
+                            <select name="gender" class="form-control"
+                                style="width: 100%; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; font-size: 0.95rem;">
+                                <option value="" {{#unless user.gender}}selected{{/unless}}>Prefer not to say</option>
+                                <option value="male" {{#if (eq user.gender 'male' )}}selected{{/if}}>Male</option>
+                                <option value="female" {{#if (eq user.gender 'female' )}}selected{{/if}}>Female</option>
+                                <option value="other" {{#if (eq user.gender 'other' )}}selected{{/if}}>Other</option>
+                                <option value="prefer_not_to_say" {{#if (eq user.gender 'prefer_not_to_say'
+                                    )}}selected{{/if}}>Prefer not to say</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 24px;">
+                            <label
+                                style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-weight: 600; font-size: 0.9rem;">Nationality</label>
+                            <input type="text" name="nationality" value="{{user.nationality}}" maxlength="100"
+                                class="form-control"
+                                style="width: 100%; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; font-size: 0.95rem;">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="padding: 10px 24px; font-weight: 600;">Save
+                            Changes</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Account Tab -->
+            <div id="account-tab" class="tab-content" style="display: none;">
+                <div class="card"
+                    style="background: var(--surface-color); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 24px;">
+                    <h2 style="margin-bottom: 24px; font-size: 1.25rem;">Account Information</h2>
+
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; margin-bottom: 8px; color: var(--text-secondary);">Email
+                            Address</label>
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <input type="email" value="{{user.email}}" disabled class="form-control"
+                                style="width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-muted); border-radius: 6px;">
+                            {{#if user.isEmailVerified}}
+                            <span style="margin-left: 12px; color: #4CAF50; font-size: 0.9rem;">Verified ✓</span>
+                            {{else}}
+                            <button class="btn btn-sm btn-secondary" style="margin-left: 12px;">Verify</button>
+                            {{/if}}
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; margin-bottom: 8px; color: var(--text-secondary);">Account
+                            Type</label>
+                        <div
+                            style="padding: 12px; background: rgba(124, 58, 237, 0.1); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 8px;">
+                            <span style="color: var(--text-primary); font-weight: 600; text-transform: capitalize;">
+                                {{#if (eq user.user_type 'merchant')}}
+                                🎵 Artist Account
+                                {{else}}
+                                👤 Listener Account
+                                {{/if}}
+                            </span>
+                            {{#if user.is_verified}}
+                            <span style="margin-left: 12px; color: #4CAF50;">✓ Verified</span>
+                            {{/if}}
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 24px;">
+                        <h3 style="margin-bottom: 16px; font-size: 1.1rem; color: var(--text-primary);">Password</h3>
+                        <button class="btn btn-secondary">Change Password</button>
+                    </div>
+
+                    <div style="margin-bottom: 24px;">
+                        <h3 style="margin-bottom: 16px; font-size: 1.1rem; color: var(--text-primary);">Session</h3>
+                        <button onclick="handleLogout()" class="btn btn-secondary"
+                            style="background: rgba(255, 59, 48, 0.1); border-color: #FF3B30; color: #FF3B30;">
+                            <i class="fa-solid fa-right-from-bracket"></i> Logout
+                        </button>
+                    </div>
+                </div>
+
+                {{#unless (eq user.user_type 'merchant')}}
+                <!-- Upgrade to Merchant Card - Only shown for non-merchants -->
+                <div class="card"
+                    style="background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(219, 39, 119, 0.1) 100%); padding: 32px; border-radius: 12px; border: 1px solid rgba(124, 58, 237, 0.3);">
+                    <div style="display: flex; align-items: center; gap: 24px;">
+                        <div style="flex: 1;">
+                            <h2
+                                style="margin-bottom: 12px; font-size: 1.5rem; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                                Become an Artist</h2>
+                            <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px;">
+                                Upload tracks, create your own Artist Coin, and start earning from your fans. Join
+                                thousands of artists building their career on Audius Clone.
+                            </p>
+                            <ul
+                                style="color: var(--text-secondary); margin-bottom: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                <li>✓ Unlimited Uploads</li>
+                                <li>✓ Artist Analytics</li>
+                                <li>✓ Monetization Tools</li>
+                                <li>✓ Verified Badge</li>
+                            </ul>
+                            <button onclick="openUpgradeModal()" class="btn btn-primary"
+                                style="padding: 12px 32px; font-size: 1.1rem; font-weight: 600;">Upgrade to Artist
+                                Account</button>
+                        </div>
+                        <div
+                            style="width: 200px; height: 200px; background: url('/public/images/artist-illustration.svg') center/contain no-repeat; opacity: 0.8;">
+                        </div>
+                    </div>
+                </div>
+                {{/unless}}
+            </div>
+
+
+            <!-- Merchant Tab (Conditional) -->
+            <div id="merchant-tab" class="tab-content" style="display: none;">
+                <div class="card"
+                    style="background: var(--surface-color); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <!-- Content omitted for brevity, keeping structure -->
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                        <h2 style="font-size: 1.25rem;">Artist Settings</h2>
+                        <!-- ... rest of form ... -->
+                        <form id="merchant-form">
+                            <!-- ... inputs ... -->
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+{{> upgradeToMerchantModal }}
+
+<script>
+    // Tab switching logic
+    function switchTab(tabName) {
+        // Hide all tabs
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.style.display = 'none';
+        });
+
+        // Deactivate all buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+            btn.style.borderBottom = 'none';
+            btn.style.color = 'var(--text-secondary)';
+        });
+
+        // Show selected tab
+        const selectedTab = document.getElementById(tabName + '-tab');
+        if (selectedTab) {
+            selectedTab.style.display = 'block';
+        }
+
+        // Activate button
+        const activeBtn = document.querySelector(`.tab-btn[onclick="switchTab('${tabName}')"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+            activeBtn.style.borderBottom = '2px solid var(--accent-color)';
+            activeBtn.style.color = 'var(--text-primary)';
+        }
+
+        // Update URL query param without reload
+        const url = new URL(window.location);
+        url.searchParams.set('tab', tabName);
+        window.history.pushState({}, '', url);
+    }
+
+    // Initialize tab from URL or default
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab') || 'profile';
+        switchTab(tab);
+
+        // Handle Profile Update
+        document.getElementById('profile-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const btn = form.querySelector('button[type="submit"]');
+            const originalText = btn.innerText;
+
+            btn.disabled = true;
+            btn.innerText = 'Saving...';
+
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch('/api/auth/profile', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    alert('Profile updated successfully!');
+                    window.location.reload();
+                } else {
+                    const result = await response.json();
+                    alert(result.message || 'Failed to update profile');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+        });
+
+        // Handle Merchant Settings Update
+        const merchantForm = document.getElementById('merchant-form');
+        if (merchantForm) {
+            merchantForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const btn = form.querySelector('button[type="submit"]');
+                const originalText = btn.innerText;
+
+                btn.disabled = true;
+                btn.innerText = 'Updating...';
+
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+
+                try {
+                    const response = await fetch('/api/auth/profile', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+
+                    if (response.ok) {
+                        alert('Artist settings updated successfully!');
+                        window.location.reload();
+                    } else {
+                        const result = await response.json();
+                        alert(result.message || 'Failed to update settings');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again.');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerText = originalText;
+                }
+            });
+        }
+    });
+
+    // Handle Logout
+    async function handleLogout() {
+        if (!confirm('Are you sure you want to logout?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/auth/logout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (response.ok) {
+                // Clear token from localStorage
+                localStorage.removeItem('token');
+                // Redirect to login
+                window.location.href = '/auth/login';
+            } else {
+                alert('Failed to logout. Please try again.');
+            }
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Even if server request fails, clear local token and redirect
+            localStorage.removeItem('token');
+            window.location.href = '/auth/login';
+        }
+    }
+</script>

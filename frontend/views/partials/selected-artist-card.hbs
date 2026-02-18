@@ -1,0 +1,27 @@
+<div class="selected-artist-card" data-artist-id="{{artist.id}}">
+    <img src="{{artist.profileImageUrl}}" alt="{{artist.name}}" class="selected-artist-image"
+        onerror="this.src='https://placehold.co/400?text=Artist'" />
+    <div class="selected-artist-info">
+        <h5>{{artist.name}}</h5>
+    </div>
+    <button class="btn-remove" onclick="removeArtistCard('{{artist.id}}')">
+        ✕
+    </button>
+</div>
+<script>
+    // Add artist to tracking array
+    if (typeof window.addArtist === 'function') {
+        window.addArtist('{{artist.id}}', '{{artist.name}}', '{{artist.profileImageUrl}}');
+    }
+
+    // Remove artist card function
+    function removeArtistCard(artistId) {
+        const card = document.querySelector(`[data-artist-id="${artistId}"]`);
+        if (card) {
+            card.remove();
+            if (typeof window.removeArtist === 'function') {
+                window.removeArtist(artistId);
+            }
+        }
+    }
+</script>

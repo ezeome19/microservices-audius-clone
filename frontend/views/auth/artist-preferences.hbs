@@ -1,0 +1,137 @@
+<div class="preferences-container">
+    <div class="preferences-header">
+        <h1>🎵 Choose Your Favorite Artists</h1>
+        <p>Select exactly 3 artists to personalize your feed</p>
+    </div>
+
+    <div class="search-section">
+        <input type="text" id="artist-search" name="query" class="search-input" placeholder="Search for artists..."
+            hx-get="/artists/search" hx-trigger="keyup changed delay:500ms" hx-target="#search-results"
+            hx-indicator="#search-loading" />
+        <div id="search-loading" class="htmx-indicator">
+            Searching...
+        </div>
+    </div>
+
+    <div id="search-results" class="search-results">
+        <p class="hint-text">Start typing to search artists from Audius...</p>
+    </div>
+
+    <div class="selected-section">
+        <h3>Selected Artists (<span id="selected-count">0</span>/3)</h3>
+        <div id="selected-artists" class="selected-artists">
+            <!-- Selected artists will appear here via HTMX -->
+        </div>
+    </div>
+
+    <div class="actions">
+        <button class="btn btn-secondary" onclick="skipPreferences()">
+            Skip for Now
+        </button>
+        <button class="btn btn-primary" id="continue-btn" disabled onclick="saveAndContinue()">
+            Continue to Dashboard
+        </button>
+    </div>
+</div>
+
+<script>
+    let selectedCount = 0;
+    const maxSelections = 3;
+    const selectedArtists = [];
+
+    // Update selected count
+    function updateSelectedCount() {
+        document.getElementById('selected-count').textContent = selectedCount;
+        const continueBtn = document.getElementById('continue-btn');
+        // Enable button only when exactly 3 artists are selected
+        continueBtn.disabled = selectedCount !== maxSelections;
+    }
+
+    // Handle artist selection
+    document.body.addEventListener('htmx:afterSwap', function (event) {
+        if (event.detail.target.id === 'selected-artists') {
+            selectedCount++;
+            updateSelectedCount();
+
+            // Disable further selections if max reached
+            if (selectedCount >= maxSelections) {
+                document.querySelectorAll('.artist-card .btn-select').forEach(btn => {
+                    btn.disabled = true;
+                    btn.textContent = 'Max Reached';
+                });
+            }
+        }
+    });
+
+    // Track selected artists
+    window.addArtist = function(artistId, artistName, profileImageUrl) {
+        selectedArtists.push({
+            id: artistId,
+            name: artistName,
+            profileImageUrl: profileImageUrl
+        });
+    };
+
+    // Remove artist
+    window.removeArtist = function(artistId) {
+        const index = selectedArtists.findIndex(a => a.id === artistId);
+        if (index > -1) {
+            selectedArtists.splice(index, 1);
+            selectedCount--;
+            updateSelectedCount();
+
+            // Re-enable select buttons
+            if (selectedCount < maxSelections) {
+                document.querySelectorAll('.artist-card .btn-select').forEach(btn => {
+                    btn.disabled = false;
+                    btn.textContent = 'Select';
+                });
+            }
+        }
+    };
+
+    // Save preferences and continue
+    async function saveAndContinue() {
+        if (selectedArtists.length !== 3) {
+            alert('Please select exactly 3 artists');
+            return;
+        }
+
+        const continueBtn = document.getElementById('continue-btn');
+        continueBtn.disabled = true;
+        continueBtn.textContent = 'Saving...';
+
+        try {
+            const response = await fetch('/artists/save-preferences', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    preferredArtists: selectedArtists.map(a => a.id)
+                })
+            });
+
+            if (response.ok) {
+                window.location.href = '/dashboard';
+            } else {
+                const data = await response.json();
+                alert(data.message || 'Failed to save preferences');
+                continueBtn.disabled = false;
+                continueBtn.textContent = 'Continue to Dashboard';
+            }
+        } catch (error) {
+            console.error('Error saving preferences:', error);
+            alert('An error occurred. Please try again.');
+            continueBtn.disabled = false;
+            continueBtn.textContent = 'Continue to Dashboard';
+        }
+    }
+
+    // Skip preferences
+    function skipPreferences() {
+        if (confirm('Are you sure you want to skip? You can always set your preferences later in settings.')) {
+            window.location.href = '/dashboard';
+        }
+    }
+</script>

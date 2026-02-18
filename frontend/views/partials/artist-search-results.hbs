@@ -1,0 +1,31 @@
+{{#if artists.length}}
+<div class="artist-grid">
+    {{#each artists}}
+    <div class="artist-card">
+        <img src="{{this.profilePictureUrl}}" alt="{{this.name}}" class="artist-image"
+            onerror="this.src='https://placehold.co/400?text=Artist'" />
+        <div class="artist-info">
+            <h4>{{this.name}}</h4>
+            <p class="artist-stats">
+                {{#if this.followerCount}}
+                {{this.followerCount}} followers
+                {{/if}}
+            </p>
+        </div>
+        <button class="btn btn-select" hx-post="/artists/import"
+            hx-vals='{"audiusId": "{{this.id}}", "name": "{{this.name}}", "profileImageUrl": "{{this.profilePictureUrl}}"}'
+            hx-target="#selected-artists" hx-swap="beforeend">
+            Select
+        </button>
+    </div>
+    {{/each}}
+</div>
+{{else}}
+{{#if error}}
+<p class="error-text">{{error}}</p>
+{{else if message}}
+<p class="hint-text">{{message}}</p>
+{{else}}
+<p class="hint-text">No artists found. Try a different search.</p>
+{{/if}}
+{{/if}}

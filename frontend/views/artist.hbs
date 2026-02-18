@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{artistName}} - Audius Clone</title>
+    <link rel="stylesheet" href="/public/css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo-area" style="margin-bottom: 40px;">
+                <h2
+                    style="background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; font-size: 1.5rem;">
+                    AUDIUS</h2>
+            </div>
+
+            <nav class="nav-links">
+                <a href="/dashboard#feed" class="nav-item">
+                    <i class="fa-solid fa-users"></i> Feed
+                </a>
+                <a href="/dashboard#trending" class="nav-item">
+                    <i class="fa-solid fa-chart-line"></i> Trending
+                </a>
+                <a href="/dashboard#explore" class="nav-item">
+                    <i class="fa-solid fa-compass"></i> Explore
+                </a>
+
+                <p
+                    style="text-transform: uppercase; font-size: 0.7rem; color: var(--text-muted); letter-spacing: 1px; margin: 24px 16px 8px 16px; font-weight: 800;">
+                    Library</p>
+
+                <a href="/dashboard#favorites" class="nav-item">
+                    <i class="fa-solid fa-heart"></i> Favorites
+                </a>
+                <a href="/dashboard#playlists" class="nav-item">
+                    <i class="fa-solid fa-list-ul"></i> Playlists
+                </a>
+                <a href="/settings" class="nav-item">
+                    <i class="fa-solid fa-gear"></i> Settings
+                </a>
+            </nav>
+            <div class="user-area"
+                style="margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">Start Listening</p>
+                <div style="margin-top: 10px; margin-bottom: 10px;">
+                    <button class="btn btn-primary" style="width: 100%; font-size: 0.9rem; padding: 8px;">Subscribe to
+                        Premium</button>
+                </div>
+                <a href="/auth/logout" style="font-size: 0.8rem; color: var(--text-muted);">Log Out</a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Artist Header -->
+            <div class="artist-header" style="position: relative; margin-bottom: 40px;">
+                <!-- Cover Photo -->
+                <div class="artist-cover"
+                    style="height: 240px; background: linear-gradient(135deg, #7E1BCC 0%, #6516A1 100%); border-radius: 0; position: relative; overflow: hidden;">
+                    {{#if artist.coverPhoto}}
+                    <img src="{{artist.coverPhoto}}" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;">
+                    {{/if}}
+                </div>
+
+                <!-- Artist Info -->
+                <div class="artist-header-row">
+                    <!-- Profile Picture -->
+                    <div class="artist-avatar"
+                        style="width: 160px; height: 160px; border-radius: 50%; border: 4px solid var(--bg-secondary); overflow: hidden; background: var(--bg-card);">
+                        {{#if artist.profilePicture}}
+                        <img src="{{artist.profilePicture}}" alt="{{artistName}}"
+                            style="width: 100%; height: 100%; object-fit: cover;">
+                        {{else}}
+                        <div
+                            style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 4rem; font-weight: 800; color: var(--text-secondary);">
+                            {{substring artistName 0 1}}
+                        </div>
+                        {{/if}}
+                    </div>
+
+                    <!-- Artist Details -->
+                    <div style="flex: 1; padding-bottom: 24px;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <h1
+                                style="font-size: 2.8rem; font-weight: 900; margin: 0; color: var(--text-primary); letter-spacing: -1px;">
+                                {{artistName}}</h1>
+                            {{#if artist.isVerified}}
+                            <span class="verification-badge" style="font-size: 1.4rem; color: var(--accent-primary);"
+                                title="Verified"><i class="fa-solid fa-circle-check"></i></span>
+                            {{/if}}
+                        </div>
+
+                        <!-- Audius Style Stats row -->
+                        <div class="artist-stats-row">
+                            <div class="stat-item">
+                                <span id="headerFollowerCount" class="stat-value">{{artist.followerCount}}</span>
+                                <span class="stat-label">FOLLOWERS</span>
+                            </div>
+                            <div class="stat-item">
+                                <span id="headerTrackCount" class="stat-value">0</span>
+                                <span class="stat-label">TRACKS</span>
+                            </div>
+                            <div class="stat-item">
+                                <span id="headerFollowingCount" class="stat-value">0</span>
+                                <span class="stat-label">FOLLOWING</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div style="display: flex; gap: 12px; align-items: center; padding-bottom: 16px;">
+                        <button id="followBtn" class="btn btn-primary {{#if isFollowing}}active{{/if}}"
+                            style="border-radius: 6px; padding: 10px 32px; font-weight: 700;">
+                            {{#if isFollowing}}Following{{else}}Follow{{/if}}
+                        </button>
+                        <button class="btn btn-secondary"
+                            style="border-radius: 6px; width: 44px; height: 44px; padding: 0; display: flex; align-items: center; justify-content: center; background: var(--bg-card); border: 1px solid var(--border-color);">
+                            <i class="fa-solid fa-share-nodes"></i>
+                        </button>
+                        <div style="position: relative;">
+                            <button id="artistMoreBtn" class="btn btn-secondary"
+                                style="border-radius: 4px; width: 44px; height: 44px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa-solid fa-ellipsis"></i>
+                            </button>
+                            <!-- More Dropdown -->
+                            <div id="artistMoreMenu" class="dropdown-menu"
+                                style="display: none; position: absolute; right: 0; top: 100%; margin-top: 8px; width: 220px; z-index: 100;">
+                                <div class="dropdown-item" onclick="copyArtistLink()"><i class="fa-solid fa-link"></i>
+                                    Copy Link to Profile</div>
+                                <div class="dropdown-item"><i class="fa-solid fa-message"></i> Direct Message</div>
+                                <div class="dropdown-item" onclick="shareToXArtist()"><i
+                                        class="fa-brands fa-x-twitter"></i> Share to X</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page Layout: Main vs Sidebar -->
+            <div class="artist-page-content" style="display: flex; gap: 40px; padding: 0 32px;">
+                <!-- Main Content Column -->
+                <div style="flex: 1;">
+                    <!-- Coin Info Panel -->
+                    {{#if artistCoin}}
+                    <div class="coin-info-panel"
+                        style="background: var(--bg-card); border-radius: 16px; padding: 24px; margin-bottom: 32px; border: 1px solid var(--border-color);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h3 style="margin: 0 0 8px 0; font-size: 1.2rem;">{{artistCoin.coinName}}</h3>
+                                <p style="color: var(--text-secondary); margin: 0;">Symbol:
+                                    <strong>{{artistCoin.coinSymbol}}</strong>
+                                </p>
+                            </div>
+                            <div style="text-align: right;">
+                                <div
+                                    style="font-size: 2rem; font-weight: 800; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                                    ₦{{artistCoin.pricePerCoin}}
+                                </div>
+                                <p style="color: var(--text-secondary); margin: 0; font-size: 0.9rem;">per coin</p>
+                            </div>
+                            {{#if userWallet}}
+                            <div style="background: var(--bg-secondary); padding: 16px 24px; border-radius: 12px;">
+                                <p style="color: var(--text-secondary); margin: 0 0 4px 0; font-size: 0.9rem;">Your
+                                    Balance</p>
+                                <div style="font-size: 1.5rem; font-weight: 700;">{{userWallet.balance}} coins</div>
+                            </div>
+                            {{/if}}
+                        </div>
+                    </div>
+                    {{/if}}
+
+                    <!-- Tabs -->
+                    <div class="tabs"
+                        style="border-bottom: 1px solid var(--border-color); margin-bottom: 32px; display: flex; gap: 32px;">
+                        <button class="tab-btn active" data-tab="tracks">Tracks</button>
+                        <button class="tab-btn" data-tab="albums">Albums</button>
+                        <button class="tab-btn" data-tab="playlists">Playlists</button>
+                        {{#if hasExclusiveContent}}
+                        <button class="tab-btn" data-tab="exclusive">🔒 EXCLUSIVE</button>
+                        {{/if}}
+                    </div>
+
+                    <!-- Tab Content -->
+                    <div id="tracks-tab" class="tab-content active">
+                        <div class="track-list">
+                            {{#each songs}}
+                            <div class="audius-track-row {{#if this.isGated}}gated-track{{/if}}"
+                                data-song-id="{{this.id}}"
+                                onclick="{{#if this.isGated}}{{else}}handleTrackRowClick(event, '{{this.id}}'){{/if}}"
+                                style="{{#if this.isGated}}opacity: 0.6; cursor: not-allowed;{{/if}}">
+                                <div class="track-rank">{{add @index 1}}</div>
+                                <div class="track-artwork-container" style="width: 128px; height: 128px;">
+                                    <img src="{{this.coverArtUrl}}" class="track-artwork" alt="{{this.title}}"
+                                        onerror="this.src='https://placehold.co/300?text=No+Cover'">
+                                    <div class="play-overlay" style="{{#if this.isGated}}opacity: 1;{{/if}}">
+                                        <span class="overlay-icon">
+                                            {{#if this.isGated}}
+                                            <i class="fa-solid fa-lock"></i>
+                                            {{else}}
+                                            <i class="fa-solid fa-play"></i>
+                                            {{/if}}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="track-main-info">
+                                    <div class="track-title-row">
+                                        <span class="track-title song-link"
+                                            onclick="event.stopPropagation(); showSongPage('{{this.id}}')">{{this.title}}</span>
+                                        {{#if this.isGated}}
+                                        <span style="color: #CC0EF0; font-size: 0.85rem; margin-left: 8px;"
+                                            title="{{this.gatedReason}}">
+                                            <i class="fa-solid fa-lock"></i> {{#if
+                                            this.gatedReason}}{{this.gatedReason}}{{else}}Gated{{/if}}
+                                        </span>
+                                        {{/if}}
+                                        {{#if this.isExclusive}}
+                                        <span style="color: var(--gold-tier); font-size: 0.9rem; margin-left: 8px;"><i
+                                                class="fa-solid fa-lock"></i></span>
+                                        {{/if}}
+                                    </div>
+                                    <div class="track-artist-row">
+                                        <span class="artist-link"
+                                            onclick="event.stopPropagation(); showArtistPage('{{../artist.id}}')">{{../artistName}}</span>
+                                        {{#if ../artist.isVerified}}
+                                        <span class="verification-badge" title="Verified"><i
+                                                class="fa-solid fa-circle-check"></i></span>
+                                        {{/if}}
+                                    </div>
+                                </div>
+                                <div class="track-stats">
+                                    <div style="display: flex; gap: 16px; align-items: center;">
+                                        <span class="like-indicator"
+                                            onclick="event.stopPropagation(); toggleLike(event, '{{this.id}}')"
+                                            style="cursor: pointer;">
+                                            <i class="fa-regular fa-heart"></i>
+                                        </span>
+                                        <span title="Repost"><i class="fa-solid fa-retweet"></i> {{#if
+                                            this.repostCount}}{{this.repostCount}}{{else}}0{{/if}}</span>
+                                        <span title="Favorite"><i class="fa-solid fa-heart"></i> {{#if
+                                            this.likeCount}}{{this.likeCount}}{{else}}0{{/if}}</span>
+                                        <span title="Comments"
+                                            onclick="event.stopPropagation(); toggleComments('{{this.id}}')"
+                                            style="cursor: pointer;">
+                                            <i class="fa-regular fa-comment"></i> <span
+                                                class="comment-count-{{this.id}}">0</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="track-plays">
+                                    <i class="fa-solid fa-play" style="font-size: 0.8rem; margin-right: 4px;"></i>{{#if
+                                    this.playCount}}{{this.playCount}}{{else}}0{{/if}}
+                                </div>
+                                <div style="position: relative;">
+                                    <span class="track-more-btn"
+                                        onclick="event.stopPropagation(); toggleTrackMenu(event, '{{this.id}}')"
+                                        style="cursor: pointer; padding: 10px;">
+                                        <i class="fa-solid fa-ellipsis"></i>
+                                    </span>
+                                    <div id="trackMenu-{{this.id}}" class="dropdown-menu track-menu"
+                                        style="display: none; position: absolute; right: 0; top: 100%; z-index: 50; width: 200px;">
+                                        <div class="dropdown-item" onclick="shareTrack('{{this.id}}')">Share</div>
+                                        <div class="dropdown-item" onclick="repostTrack('{{this.id}}')">Repost</div>
+                                        <div class="dropdown-item" onclick="favoriteTrack('{{this.id}}')">Favorite</div>
+                                        <div class="dropdown-item" onclick="addToPlaylist('{{this.id}}')">Add to
+                                            Playlist</div>
+                                    </div>
+                                </div>
+                                <div class="track-duration">{{this.duration}}s</div>
+                            </div>
+                            {{/each}}
+                        </div>
+                    </div>
+
+                    <div id="albums-tab" class="tab-content" style="display: none;">
+                        <h3>Albums</h3>
+                    </div>
+                    <div id="playlists-tab" class="tab-content" style="display: none;">
+                        <h3>Playlists</h3>
+                    </div>
+                </div>
+
+                <!-- Artist Sidebar Column -->
+                <div class="artist-sidebar" style="width: 300px; display: flex; flex-direction: column; gap: 32px;">
+                    <div
+                        style="background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color);">
+                        <h4
+                            style="margin: 0 0 12px 0; font-size: 14px; font-weight: 900; color: #C3C1CB; text-transform: uppercase;">
+                            About {{artistName}}</h4>
+                        <p style="color: var(--text-secondary); line-height: 1.6; margin: 0; font-size: 0.95rem;">
+                            {{#if artist.bio}}{{artist.bio}}{{else}}No bio available for this artist.{{/if}}
+                        </p>
+                        <div style="display: flex; gap: 16px; margin-top: 20px;">
+                            <a href="#" style="color: var(--text-secondary); font-size: 1.2rem;"><i
+                                    class="fa-brands fa-x-twitter"></i></a>
+                            <a href="#" style="color: var(--text-secondary); font-size: 1.2rem;"><i
+                                    class="fa-brands fa-instagram"></i></a>
+                            <a href="#" style="color: var(--text-secondary); font-size: 1.2rem;"><i
+                                    class="fa-solid fa-globe"></i></a>
+                        </div>
+                    </div>
+
+                    <div
+                        style="background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color);">
+                        <h4
+                            style="margin: 0 0 16px 0; font-size: 14px; font-weight: 900; color: #C3C1CB; text-transform: uppercase;">
+                            <i class="fa-solid fa-hand-holding-heart"
+                                style="color: var(--accent-primary); margin-right: 8px;"></i>
+                            Support the Artist
+                        </h4>
+                        <p
+                            style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px; line-height: 1.6;">
+                            Show your appreciation by sending a tip to {{artist.name}}. Your support helps artists
+                            create more amazing music!
+                        </p>
+                        <button id="tipBtn" class="btn" onclick="openTipModal('{{artist.id}}', '{{artist.name}}')"
+                            style="background: var(--accent-gradient); color: white; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 14px; border-radius: 4px; font-weight: 700; font-size: 1.1rem; width: 100%; border: none; cursor: pointer;">
+                            <i class="fa-solid fa-gift"></i> Send Tip
+                        </button>
+                        <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 12px;">
+                            <i class="fa-solid fa-shield-halved"></i> Secure payment via Flutterwave
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    {{> commentModal}}
+    <script src="/public/js/audio-player.js"></script>
+    <script src="/public/js/artist-page.js"></script>
+    <script src="/public/js/tip-modal.js"></script>
+</body>
+
+</html>
