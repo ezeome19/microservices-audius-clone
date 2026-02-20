@@ -114,9 +114,7 @@ async function getPersonalizedFeed(req, res) {
         const allTracks = [];
         for (const artistId of preferredArtists) {
             try {
-                console.log(`[Personalized Feed] Fetching tracks for artist: ${artistId}`);
                 const artistTracks = await getArtistTracks(artistId);
-                console.log(`[Personalized Feed] Found ${artistTracks.length} tracks for artist ${artistId}`);
                 allTracks.push(...artistTracks);
             } catch (error) {
                 // Skip artists that fail to load

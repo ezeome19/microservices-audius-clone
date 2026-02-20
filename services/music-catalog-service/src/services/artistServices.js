@@ -1,5 +1,6 @@
 const { Artist } = require('../models');
 const { searchArtists: audiusSearchArtists, getArtist, mapAudiusArtistToLocal } = require('./audiusService');
+const { validate: validateUUID } = require('uuid');
 
 // Find all artists with albums and songs information
 async function findAllArtists() {
@@ -10,7 +11,6 @@ async function findAllArtists() {
 
 // Find artist by ID with albums and songs information
 async function findArtistById(artistId) {
-    const { validate: validateUUID } = require('uuid');
     if (!validateUUID(artistId)) {
         return null;
     }

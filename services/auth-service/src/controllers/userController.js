@@ -9,9 +9,9 @@ const {
     requestPasswordReset,
     resetPasswordWithToken,
     deleteUser: deleteUserService,
-    getUserPreferences,
     updateUserPreferences,
-    upgradeUserToMerchant
+    upgradeUserToMerchant,
+    findAllUsers
 } = require('../services/userServices');
 
 // User signup
@@ -58,34 +58,28 @@ async function logoutUser(req, res) {
 
 // Get current user (authenticated) or user by ID (public)
 async function getCurrentUser(req, res) {
-    try {
-        // Use userId from params if available (public access), otherwise use authenticated user ID
-        const userId = req.params.userId || req.user?.id;
+    // Use userId from params if available (public access), otherwise use authenticated user ID
+    const userId = req.params.userId || req.user?.id;
 
-        if (!userId) {
-            return res.status(400).json({ message: 'User ID is required' });
-        }
+    if (!userId) { return res.status(400).json({ message: 'User ID is required' }); }
 
-        // Validate UUID format to prevent 500 error from DB
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (!uuidRegex.test(userId)) {
-            return res.status(400).json({ message: 'Invalid user ID format' });
-        }
-
-        const user = await findCurrentUser(userId);
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        res.json({
-            message: 'User retrieved successfully',
-            user
-        });
-    } catch (error) {
-        logger.error('Get user failed:', error);
-        res.status(500).json({ message: 'Internal server error' });
+    // Validate UUID format to prevent 500 error from DB
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(userId)) {
+        return res.status(400).json({ message: 'Invalid user ID format' });
     }
+
+    const user = await findCurrentUser(userId);
+
+    if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({
+        message: 'User retrieved successfully',
+        user
+    });
+
 }
 
 // Update user profile
@@ -196,6 +190,16 @@ async function upgradeToMerchant(req, res) {
     }
 }
 
+// Admin only: Get all users
+async function getAllUsers(req, res) {
+    const users = await findAllUsers();
+    res.json({
+        message: 'Users retrieved successfully',
+        count: users.length,
+        users
+    });
+}
+
 module.exports = {
     signupUser,
     loginUser,
@@ -207,5 +211,6 @@ module.exports = {
     deleteUser,
     getPreferences,
     updatePreferences,
-    upgradeToMerchant
+    upgradeToMerchant,
+    getAllUsers
 };

@@ -124,23 +124,27 @@
             const result = await response.json();
 
             if (response.ok) {
+                console.log('Upgrade success:', result);
                 alert('Success! Your account has been upgraded to merchant. You will now be logged out. Please log back in to access your merchant dashboard with analytics and dark red theme.');
 
-                // Logout user
+                // Logout user locally first for safety
+                localStorage.removeItem('token');
+
+                // Then try server logout
                 try {
                     await fetch('/api/auth/logout', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' }
                     });
                 } catch (logoutError) {
-                    console.error('Logout error:', logoutError);
+                    console.error('Logout error (non-critical):', logoutError);
                 }
 
-                // Clear token and redirect to login
-                localStorage.removeItem('token');
-                window.location.href = '/auth/login';
+                // Final redirect
+                window.location.href = '/auth/login?msg=upgraded';
             } else {
-                alert(result.message || 'Failed to upgrade account');
+                console.error('Upgrade failed:', result);
+                alert('Upgrade Failed: ' + (result.message || 'Unknown error. Please check your inputs.'));
             }
         } catch (error) {
             console.error('Upgrade error:', error);

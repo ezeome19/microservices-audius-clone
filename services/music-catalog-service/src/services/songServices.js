@@ -1,4 +1,5 @@
 const { Song } = require('../models');
+const { validate: validateUUID } = require('uuid');
 
 // Find all songs with artist and album information
 async function findAllSongs() {
@@ -9,7 +10,6 @@ async function findAllSongs() {
 
 // Find song by ID with artist and album information
 async function findSongById(songId) {
-    const { validate: validateUUID } = require('uuid');
     if (!validateUUID(songId)) {
         return null;
     }

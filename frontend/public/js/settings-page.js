@@ -206,7 +206,7 @@ window.showSettingsPage = function () {
 
 async function loadUserSettings() {
     try {
-        const response = await fetch(`${API_URL}/api/auth/me`);
+        const response = await authFetch(`${API_URL}/api/auth/me`);
         if (response.ok) {
             const data = await response.json();
             const user = data.user;
@@ -221,7 +221,7 @@ async function loadUserSettings() {
             const upgradeCard = document.getElementById('merchantUpgradeCard');
             const statusInfo = document.getElementById('merchantStatusInfo');
 
-            if (user.user_type === 'merchant') {
+            if (user.userType === 'merchant') {
                 if (upgradeCard) upgradeCard.style.display = 'none';
                 if (statusInfo) statusInfo.style.display = 'block';
             } else {
@@ -246,7 +246,7 @@ async function updateAccountSettings() {
     }
 
     try {
-        const response = await fetch(`${API_URL}/api/auth/profile`, {
+        const response = await authFetch(`${API_URL}/api/auth/profile`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -295,7 +295,7 @@ function confirmDeleteAccount() {
 
 async function deleteAccount() {
     try {
-        const response = await fetch(`${API_URL}/api/auth/profile`, {
+        const response = await authFetch(`${API_URL}/api/auth/profile`, {
             method: 'DELETE'
         });
 

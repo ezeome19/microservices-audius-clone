@@ -6,7 +6,7 @@ const {
     updatePlaylistData,
     deletePlaylistById
 } = require('../services/playlistServices');
-
+const axios = require('axios');
 
 // Get all public playlists
 async function getAllPlaylists(req, res) {
@@ -44,8 +44,6 @@ async function getPlaylistById(req, res) {
         playlist
     });
 }
-
-const axios = require('axios');
 
 // Create new playlist
 async function createPlaylist(req, res) {

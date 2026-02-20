@@ -12,7 +12,7 @@ window.loadPersonalizedFeed = async function () {
     `;
 
     try {
-        const response = await fetch(`${API_URL}/api/music/songs/feed`);
+        const response = await authFetch(`${API_URL}/api/music/songs/feed`);
 
         if (!response.ok) {
             throw new Error('Failed to fetch personalized feed');

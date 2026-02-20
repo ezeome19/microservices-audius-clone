@@ -12,7 +12,8 @@ const {
     deleteUser,
     getPreferences,
     updatePreferences,
-    upgradeToMerchant
+    upgradeToMerchant,
+    getAllUsers
 } = require('../controllers/userController');
 const {
     validate,

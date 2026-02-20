@@ -9,11 +9,6 @@ const {
     removeTrackFromPlaylist,
     getPlaylistWithTracks
 } = require('../services/userPlaylistServices');
-
-/**
- * User Playlist Controller - Handle user playlist operations
- */
-
 const axios = require('axios');
 
 // Create playlist

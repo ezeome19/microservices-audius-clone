@@ -6,9 +6,6 @@ const { User } = require('../models');
 // Get current user
 async function findCurrentUser(userId) {
     const user = await User.findByPk(userId, { attributes: { exclude: ['password'] } });
-    if (user) {
-        console.log(`[Auth Service] User ${userId} preferredArtists:`, user.preferredArtists);
-    }
     return user;
 }
 
@@ -157,9 +154,15 @@ async function upgradeUserToMerchant(userId, upgradeData) {
     return user;
 }
 
+// Find all users (admin only)
+async function findAllUsers() {
+    return await User.findAll({ attributes: { exclude: ['password'] } });
+}
+
 module.exports = {
     findCurrentUser,
     findUserByEmail,
+    findAllUsers,
     createUser,
     verifyPassword,
     updateUserProfile,

@@ -15,6 +15,7 @@ handlebars.registerHelper('eq', (a, b) => a === b);
 handlebars.registerHelper('json', (context) => JSON.stringify(context));
 handlebars.registerHelper('toLowerCase', (str) => str ? str.toLowerCase() : '');
 handlebars.registerHelper('substring', (str, start, end) => str ? str.substring(start, end) : '');
+handlebars.registerHelper('or', (a, b) => a || b);
 handlebars.registerHelper('add', (a, b) => a + b);
 
 fastify.register(require('@fastify/view'), {
@@ -46,7 +47,7 @@ fastify.register(require('@fastify/http-proxy'), {
     http2: false, // Ensure http1
     replyOptions: {
         rewriteRequestHeaders: (request, headers) => {
-            if (request.cookies.token) {
+            if (request.cookies.token && !headers['x-auth-token']) {
                 headers['x-auth-token'] = request.cookies.token;
             }
             return headers;

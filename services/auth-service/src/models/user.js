@@ -166,9 +166,9 @@ function validatePreferences(req) {
 function validateAccountUpgrade(req) {
     const schema = Joi.object({
         artistName: Joi.string().min(1).max(100).optional(),
-        recordLabel: Joi.string().min(1).max(100).optional(),
-        bio: Joi.string().max(500).optional(),
-        website: Joi.string().uri().optional()
+        recordLabel: Joi.string().max(100).allow('').optional(),
+        bio: Joi.string().max(500).allow('').optional(),
+        website: Joi.string().uri().allow('').optional()
     }).or('artistName', 'recordLabel'); // At least one must be provided
     return schema.validate(req);
 }

@@ -525,24 +525,24 @@ input::-webkit-password-toggle-button {
 /* Audius Rectangular Track Row */
 .audius-track-row {
     display: grid;
-    grid-template-columns: 40px 128px 1fr 140px 100px 80px;
+    grid-template-columns: 48px 128px 2fr 1.5fr 1fr 80px;
     align-items: center;
-    gap: 24px;
-    padding: 8px;
-    height: 144px;
+    gap: 32px;
+    padding: 12px 24px;
+    height: 152px;
     background: var(--bg-card);
     border-bottom: 1px solid var(--border-color);
-    border-radius: 8px;
-    margin-bottom: 16px;
-    transition: background 0.2s ease, transform 0.1s ease;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    transition: all 0.2s ease;
     cursor: pointer;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .audius-track-row:hover {
     background: var(--bg-hover);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(126, 27, 204, 0.1);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
 .track-rank {
@@ -557,6 +557,65 @@ input::-webkit-password-toggle-button {
     height: 128px;
     border-radius: 4px;
     object-fit: cover;
+}
+
+/* Session Masking Overlay (FOUC Fix) */
+#session-mask {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-primary);
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+#session-mask.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.premium-loader {
+    width: 60px;
+    height: 60px;
+    border: 4px solid var(--border-color);
+    border-top: 4px solid var(--accent-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 24px;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.mask-logo {
+    background: var(--accent-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 900;
+    font-size: 2rem;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+}
+
+.mask-status {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
 }
 
 /* Dropdown Menus */
@@ -677,9 +736,10 @@ input::-webkit-password-toggle-button {
 
 .track-stats {
     display: flex;
-    gap: 16px;
-    font-size: 0.9rem;
-    color: var(--text-inactive);
+    justify-content: flex-start;
+    gap: 24px;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
 }
 
 .track-stats i,
@@ -715,16 +775,20 @@ input::-webkit-password-toggle-button {
 }
 
 .track-plays {
-    text-align: right;
-    font-size: 1rem;
+    text-align: left;
+    font-size: 0.95rem;
     color: var(--text-secondary);
-    font-weight: 500;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .track-duration {
     text-align: right;
-    font-size: 0.85rem;
+    font-size: 0.95rem;
     color: var(--text-muted);
+    font-weight: 500;
 }
 
 /* VIP Badge for Artist Profile */

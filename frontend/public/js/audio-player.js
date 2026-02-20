@@ -37,45 +37,45 @@ class AudioPlayer {
 
     createPlayerUI() {
         const playerHTML = `
-            <div id="audioPlayer" style="position: fixed; bottom: 0; left: 0; right: 0; height: 90px; background: var(--bg-card); border-top: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 24px; gap: 16px; z-index: 999;">
-                <!-- Song Info -->
-                <div style="display: flex; align-items: center; gap: 12px; min-width: 250px;">
-                    <div id="playerCover" style="width: 56px; height: 56px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden;">
+            <div id="audioPlayer" style="position: fixed; bottom: 0; left: 0; right: 0; height: 90px; background: var(--bg-card); border-top: 1px solid var(--border-color); display: grid; grid-template-columns: 1fr 2fr 1fr; align-items: center; padding: 0 32px; z-index: 999;">
+                <!-- Left: Song Info & Like Button -->
+                <div style="display: flex; align-items: center; gap: 16px; justify-self: start;">
+                    <div id="playerCover" style="width: 56px; height: 56px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden; flex-shrink: 0;">
                         <img id="playerCoverImg" style="width: 100%; height: 100%; object-fit: cover; display: none;" onerror="this.src='https://placehold.co/150?text=No+Cover'">
                     </div>
-                    <div>
-                        <div id="playerTitle" style="font-weight: 600; margin-bottom: 4px;">No song playing</div>
-                        <div id="playerArtist" style="color: var(--text-secondary); font-size: 0.9rem;"></div>
+                    <div style="min-width: 0; max-width: 180px;">
+                        <div id="playerTitle" style="font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">No song playing</div>
+                        <div id="playerArtist" style="color: var(--text-secondary); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
                     </div>
+                    <button id="likeBtn" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--text-secondary); transition: all 0.2s; padding: 8px; flex-shrink: 0;" title="Like this song">
+                        <i class="fa-regular fa-heart"></i>
+                    </button>
                 </div>
 
-                <!-- Like Button -->
-                <button id="likeBtn" style="background: none; border: none; cursor: pointer; font-size: 1.3rem; color: var(--text-secondary); transition: all 0.2s; padding: 8px;" title="Like this song">
-                    <i class="fa-regular fa-heart"></i>
-                </button>
-
-                <!-- Controls -->
-                <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
-                    <div style="display: flex; justify-content: center; gap: 16px; align-items: center;">
-                        <button id="prevBtn" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1.2rem;">⏮</button>
-                        <button id="playPauseBtn" style="width: 40px; height: 40px; border-radius: 50%; background: var(--accent-gradient); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem;">▶</button>
-                        <button id="nextBtn" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1.2rem;">⏭</button>
+                <!-- Center: Controls & Progress -->
+                <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 600px; justify-self: center;">
+                    <div style="display: flex; justify-content: center; gap: 24px; align-items: center;">
+                        <button id="prevBtn" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1.2rem; transition: color 0.2s;" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">⏮</button>
+                        <button id="playPauseBtn" style="width: 42px; height: 42px; border-radius: 50%; background: var(--accent-gradient); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.1rem; box-shadow: 0 4px 12px rgba(126, 27, 204, 0.3); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">▶</button>
+                        <button id="nextBtn" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1.2rem; transition: color 0.2s;" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">⏭</button>
                     </div>
 
-                    <!-- Progress Bar -->
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span id="currentTime" style="font-size: 0.8rem; color: var(--text-secondary); min-width: 40px;">0:00</span>
-                        <div id="progressBar" style="flex: 1; height: 4px; background: var(--bg-secondary); border-radius: 2px; cursor: pointer; position: relative;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span id="currentTime" style="font-size: 0.75rem; color: var(--text-secondary); min-width: 35px; text-align: right;">0:00</span>
+                        <div id="progressBar" style="flex: 1; height: 4px; background: var(--bg-secondary); border-radius: 2px; cursor: pointer; position: relative; overflow: hidden;">
                             <div id="progressFill" style="height: 100%; background: var(--accent-gradient); border-radius: 2px; width: 0%; transition: width 0.1s;"></div>
                         </div>
-                        <span id="duration" style="font-size: 0.8rem; color: var(--text-secondary); min-width: 40px;">0:00</span>
+                        <span id="duration" style="font-size: 0.75rem; color: var(--text-secondary); min-width: 35px;">0:00</span>
                     </div>
                 </div>
 
-                <!-- Volume -->
-                <div style="display: flex; align-items: center; gap: 8px; min-width: 150px;">
-                    <span style="font-size: 1.2rem;">🔊</span>
-                    <input type="range" id="volumeSlider" min="0" max="100" value="70" style="flex: 1;">
+                <!-- Right: Volume & Extra Controls -->
+                <div style="display: flex; align-items: center; gap: 12px; justify-self: end; min-width: 180px; justify-content: flex-end;">
+                    <button style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1rem;"><i class="fa-solid fa-list-ul"></i></button>
+                    <div style="display: flex; align-items: center; gap: 8px; width: 120px;">
+                        <span id="volumeIcon" style="font-size: 1rem; color: var(--text-secondary);">🔊</span>
+                        <input type="range" id="volumeSlider" min="0" max="100" value="70" style="flex: 1; cursor: pointer; accent-color: var(--accent-primary);">
+                    </div>
                 </div>
             </div>
         `;
@@ -270,12 +270,28 @@ class AudioPlayer {
             }
         }
 
-        const savedState = localStorage.getItem(this.getScopedKey('audioPlayerState'));
-        if (!savedState) return;
+        // ONLY restore state if we have a currentUserId to scope it
+        if (!window.currentUserId) {
+            console.log('[AudioPlayer] No user identified, skipping state restoration');
+            // Check for unscoped legacy state and clear it to prevent cross-account leak
+            if (localStorage.getItem('audioPlayerState')) {
+                localStorage.removeItem('audioPlayerState');
+                console.log('[AudioPlayer] Cleared unscoped legacy state');
+            }
+            return;
+        }
+
+        const scopedKey = this.getScopedKey('audioPlayerState');
+        const savedState = localStorage.getItem(scopedKey);
+
+        if (!savedState) {
+            console.log('[AudioPlayer] No saved state for user:', window.currentUserId);
+            return;
+        }
 
         try {
             const state = JSON.parse(savedState);
-            console.log('[AudioPlayer] Restoring state:', state);
+            console.log('[AudioPlayer] Restoring state for user:', window.currentUserId, state);
 
             // Load the song (without auto-play initially)
             await this.loadSong(state.songId, false);
@@ -297,8 +313,6 @@ class AudioPlayer {
 
             if (shouldResume || state.isPlaying) {
                 console.log('[AudioPlayer] Resuming playback based on state/flag');
-                // Try to play - might be blocked by browser until user interaction
-                // But clicking "Go to Dashboard" on the success page counts as interaction!
                 this.play();
                 localStorage.removeItem('resume_audio');
             } else {
@@ -307,7 +321,7 @@ class AudioPlayer {
             }
         } catch (error) {
             console.error('[AudioPlayer] Failed to restore state:', error);
-            localStorage.removeItem('audioPlayerState');
+            localStorage.removeItem(scopedKey);
         }
     }
 

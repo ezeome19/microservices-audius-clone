@@ -9,9 +9,24 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script id="session-config" type="application/json">
+        {
+            "token": "{{token}}",
+            "userId": "{{user.id}}",
+            "syncSession": {{#if syncSession}}true{{else}}false{{/if}}
+        }
+    </script>
 </head>
 
 <body>
+    <!-- Session Mask (Prevents UI Flicker) -->
+    <div id="session-mask">
+        <div class="premium-loader"></div>
+        <div class="mask-logo">AUDIUS</div>
+        <div class="mask-status">Securing your session...</div>
+    </div>
+
     <div class="app-layout">
         <!-- Sidebar -->
         <aside class="sidebar">
@@ -34,6 +49,46 @@
                     style="color: var(--text-secondary); padding: 10px 0; display: flex; align-items: center; gap: 12px;">
                     <i class="fa-solid fa-compass" style="width: 20px;"></i> Explore
                 </a>
+
+                {{#if user.isAdmin}}
+                <p
+                    style="text-transform: uppercase; font-size: 0.7rem; color: var(--text-muted); letter-spacing: 1px; margin: 20px 0 10px 0;">
+                    Admin</p>
+                <a href="#admin-stats" class="nav-item" data-tab="admin-stats"
+                    style="color: var(--text-secondary); padding: 10px 0; display: flex; align-items: center; gap: 12px;">
+                    <i class="fa-solid fa-chart-pie" style="width: 20px;"></i> Platform Stats
+                </a>
+                <a href="#admin-verify" class="nav-item" data-tab="admin-verify"
+                    style="color: var(--text-secondary); padding: 10px 0; display: flex; align-items: center; gap: 12px;">
+                    <i class="fa-solid fa-user-check" style="width: 20px;"></i> Verification Queue
+                </a>
+                <a href="#admin-users" class="nav-item" data-tab="admin-users"
+                    style="color: var(--text-secondary); padding: 10px 0; display: flex; align-items: center; gap: 12px;">
+                    <i class="fa-solid fa-users-gear" style="width: 20px;"></i> User Management
+                </a>
+                {{/if}}
+
+                {{#if (or (eq user.userType 'merchant') user.isAdmin)}}
+                <p
+                    style="text-transform: uppercase; font-size: 0.7rem; color: var(--text-muted); letter-spacing: 1px; margin: 20px 0 10px 0;">
+                    Artist</p>
+                <a href="#artist-dashboard" class="nav-item" data-tab="artist-dashboard"
+                    style="color: var(--text-secondary); padding: 10px 0; display: flex; align-items: center; gap: 12px;">
+                    <i class="fa-solid fa-gauge-high" style="width: 20px;"></i> Artist Dashboard
+                </a>
+                <a href="#artist-tracks" class="nav-item" data-tab="artist-tracks"
+                    style="color: var(--text-secondary); padding: 10px 0; display: flex; align-items: center; gap: 12px;">
+                    <i class="fa-solid fa-music" style="width: 20px;"></i> My Tracks
+                </a>
+                <a href="#upload" class="nav-item" data-tab="upload"
+                    style="color: var(--text-secondary); padding: 10px 0; display: flex; align-items: center; gap: 12px;">
+                    <i class="fa-solid fa-cloud-arrow-up" style="width: 20px;"></i> Upload
+                </a>
+                {{/if}}
+
+                <p
+                    style="text-transform: uppercase; font-size: 0.7rem; color: var(--text-muted); letter-spacing: 1px; margin: 20px 0 10px 0;">
+                    Finances</p>
                 <a href="#wallet" class="nav-item" data-tab="wallet"
                     style="color: var(--text-secondary); padding: 10px 0; display: flex; align-items: center; gap: 12px;">
                     <i class="fa-solid fa-wallet" style="width: 20px;"></i> Wallet
@@ -219,6 +274,7 @@
         <!-- Player will be injected by AudioPlayer.js -->
     </div>
     {{> commentModal}}
+    {{> upgradeToMerchantModal}}
     <script src="/public/js/audio-player.js"></script>
     <script src="/public/js/personalized-feed.js"></script>
     <script src="/public/js/dashboard.js"></script>

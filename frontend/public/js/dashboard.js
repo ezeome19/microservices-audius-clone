@@ -18,20 +18,53 @@ function getScopedKey(key) {
     return `user_${window.currentUserId}_${key}`;
 }
 
+// Helper: Authenticated fetch that uses the tab-specific session token
+// This ensures cross-tab session isolation by sending the token as a header
+// instead of relying on the shared cookie.
+function authFetch(url, options = {}) {
+    const tabToken = sessionStorage.getItem('tab_session_token');
+    if (tabToken) {
+        options.headers = options.headers || {};
+        // If headers is a Headers object, convert to plain object
+        if (options.headers instanceof Headers) {
+            const h = {};
+            options.headers.forEach((v, k) => h[k] = v);
+            options.headers = h;
+        }
+        options.headers['x-auth-token'] = tabToken;
+    }
+    options.credentials = options.credentials || 'include';
+    return fetch(url, options);
+}
+
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', async () => {
+    // Critical: Initialize session management before anything else to ensure state isolation
+    const shouldStop = await initializeSessionManagement();
+    if (shouldStop) return;
+
     initializeTabs();
     initializeHeaderSearch();
-    initializeFilters(); // New: Initialize filters
+    initializeFilters(); // Initialize filters
+    initializeNotifications(); // Initialize notification bell
 
-    await fetchCurrentUser(); // Get user ID for state isolation
-    await syncUserLikes(); // Fetch likes first
-    await checkUserTier(); // Fetch and display user tier (Badge for Yearly)
-    initializeNotifications(); // New: Initialize notification bell
+    // Perform background syncs in parallel to speed up initial load
+    const syncTasks = [
+        fetchCurrentUser(),
+        syncUserLikes(),
+        checkUserTier()
+    ];
+
+    // Wait for critical user data before continuing with other loads
+    await syncTasks[0]; // Wait for fetchCurrentUser specifically
+
+    // The others can continue in background or be awaited if strictly necessary
+    // But we want trending tracks to load ASAP
 
     // Restore view from URL hash, localStorage, or default to trending
     const hash = window.location.hash.substring(1); // Remove '#'
-    const lastTab = localStorage.getItem(getScopedKey('last_active_tab'));
+    const scopedKey = getScopedKey('last_active_tab');
+    const lastTab = localStorage.getItem(scopedKey);
 
     // Check if hash is for artist page (format: artist/artistId)
     if (hash.startsWith('artist/')) {
@@ -52,20 +85,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Otherwise, handle tab navigation
-    const validTabs = ['trending', 'explore', 'favorites', 'playlists', 'wallet', 'coins', 'profile', 'upload'];
+    const validTabs = ['trending', 'explore', 'favorites', 'playlists', 'wallet', 'coins', 'profile', 'upload', 'feed', 'artist-dashboard', 'artist-tracks', 'admin-stats', 'admin-verify', 'admin-users'];
     const tabToLoad = validTabs.includes(hash) ? hash : (validTabs.includes(lastTab) ? lastTab : 'trending');
 
     // Activate the correct tab
-    const targetLink = document.querySelector(`.nav-item[data-tab="${tabToLoad}"]`);
-    if (targetLink) {
-        targetLink.click();
-    } else {
-        // Fallback to trending
-        currentTab = 'trending';
-        const filterEl = document.getElementById('trendingFilters');
-        if (filterEl) filterEl.style.display = 'flex';
-        loadTrendingTracks();
-    }
+    activateTab(tabToLoad);
+
+    // Await remaining tasks if they haven't finished
+    await Promise.allSettled(syncTasks);
 });
 
 // Handle browser back/forward navigation (hash changes)
@@ -87,7 +114,7 @@ window.addEventListener('hashchange', () => {
         }
     } else {
         // Handle tab navigation
-        const validTabs = ['trending', 'explore', 'favorites', 'playlists', 'wallet', 'coins', 'profile', 'upload'];
+        const validTabs = ['trending', 'explore', 'favorites', 'playlists', 'wallet', 'coins', 'profile', 'upload', 'feed', 'artist-dashboard', 'artist-tracks', 'admin-stats', 'admin-verify', 'admin-users'];
         if (validTabs.includes(hash)) {
             const targetLink = document.querySelector(`.nav-item[data-tab="${hash}"]`);
             if (targetLink) {
@@ -120,12 +147,105 @@ function initializeFilters() {
     }
 }
 
+// Initialize Notification Bell
+function initializeNotifications() {
+    const bell = document.getElementById('notifBell');
+    const dropdown = document.getElementById('notifDropdown');
+    const badge = document.getElementById('notifBadge');
+    const listEl = document.getElementById('notifList');
+
+    if (!bell || !dropdown) return;
+
+    // Toggle dropdown on bell click
+    bell.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = dropdown.style.display === 'block';
+        dropdown.style.display = isOpen ? 'none' : 'block';
+
+        if (!isOpen) {
+            fetchNotifications(listEl, badge);
+        }
+    });
+
+    // Close when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!dropdown.contains(e.target) && e.target !== bell) {
+            dropdown.style.display = 'none';
+        }
+    });
+}
+
+// Fetch and render notifications
+async function fetchNotifications(listEl, badge) {
+    if (!listEl) return;
+
+    try {
+        const response = await authFetch(`${API_URL}/api/social/notifications`);
+
+        if (!response.ok) {
+            listEl.innerHTML = '<div style="text-align: center; padding: 24px; color: var(--text-muted);"><p style="font-size: 0.9rem;">No notifications yet.</p></div>';
+            return;
+        }
+
+        const data = await response.json();
+        const notifications = data.notifications || [];
+
+        if (badge) {
+            const unreadCount = notifications.filter(n => !n.isRead).length;
+            badge.style.display = unreadCount > 0 ? 'block' : 'none';
+        }
+
+        if (notifications.length === 0) {
+            listEl.innerHTML = '<div style="text-align: center; padding: 24px; color: var(--text-muted);"><p style="font-size: 0.9rem;">No notifications yet.</p></div>';
+            return;
+        }
+
+        listEl.innerHTML = notifications.map(n => `
+            <div style="padding: 12px 16px; border-bottom: 1px solid var(--border-color); display: flex; gap: 12px; align-items: flex-start; ${n.isRead ? '' : 'background: rgba(204,14,240,0.05);'}">
+                <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--accent-gradient); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.9rem;">
+                    <i class="fa-solid fa-${n.type === 'like' ? 'heart' : n.type === 'comment' ? 'comment' : 'bell'}"></i>
+                </div>
+                <div style="flex: 1;">
+                    <p style="font-size: 0.85rem; color: var(--text-primary); margin: 0 0 4px;">${n.message || 'New notification'}</p>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">${n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</p>
+                </div>
+                ${!n.isRead ? '<span style="width: 8px; height: 8px; background: #CC0EF0; border-radius: 50%; flex-shrink: 0; margin-top: 6px;"></span>' : ''}
+            </div>
+        `).join('');
+
+    } catch (err) {
+        console.warn('[Notifications] Failed to load:', err.message);
+        if (listEl) {
+            listEl.innerHTML = '<div style="text-align: center; padding: 24px; color: var(--text-muted);"><p style="font-size: 0.9rem;">Could not load notifications.</p></div>';
+        }
+    }
+}
+
+// Mark all notifications as read
+window.markAllAsRead = async function () {
+    try {
+        await authFetch(`${API_URL}/api/social/notifications/read-all`, {
+            method: 'POST'
+        });
+        const badge = document.getElementById('notifBadge');
+        if (badge) badge.style.display = 'none';
+        // Re-render with all marked as read visually
+        const listEl = document.getElementById('notifList');
+        if (listEl) {
+            listEl.querySelectorAll('[style*="rgba(204,14,240,0.05)"]').forEach(el => {
+                el.style.background = '';
+            });
+            listEl.querySelectorAll('span[style*="#CC0EF0"]').forEach(el => el.remove());
+        }
+    } catch (err) {
+        console.warn('[Notifications] Failed to mark as read:', err.message);
+    }
+};
+
 // Sync likes from backend
 async function syncUserLikes() {
     try {
-        const response = await fetch(`${API_URL}/api/social/likes`, {
-            credentials: 'include'
-        });
+        const response = await authFetch(`${API_URL}/api/social/likes`);
 
         if (response.ok) {
             const data = await response.json();
@@ -146,7 +266,7 @@ async function syncUserLikes() {
 // Fetch Current User for State Isolation
 async function fetchCurrentUser() {
     try {
-        const response = await fetch(`${API_URL}/api/auth/me`);
+        const response = await authFetch(`${API_URL}/api/auth/me`);
         if (response.ok) {
             const data = await response.json();
             window.currentUserId = data.user?.id;
@@ -157,10 +277,91 @@ async function fetchCurrentUser() {
     }
 }
 
+/**
+ * Session Management: Isolation across tabs
+ * Detects if the current tab's intended session (in sessionStorage) 
+ * differs from the cookie's current session (server-rendered user).
+ */
+async function initializeSessionManagement() {
+    const configEl = document.getElementById('session-config');
+    if (!configEl) return false;
+
+    try {
+        const config = JSON.parse(configEl.textContent);
+        const { token, userId, syncSession } = config;
+
+        // 1. If we just logged in, capture this session in this tab context
+        if (syncSession && token) {
+            console.log('[Session] Capturing new session for this tab...');
+            sessionStorage.setItem('tab_session_token', token);
+            sessionStorage.setItem('tab_session_userid', userId);
+
+            // Clean up URL so reloads don't re-trigger sync flag
+            window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+            hideSessionMask();
+            return false;
+        }
+
+        // 2. Check for existing session in this tab
+        const tabToken = sessionStorage.getItem('tab_session_token');
+        const tabUserId = sessionStorage.getItem('tab_session_userid');
+
+        // 3. If no session recorded for this tab yet, capture current
+        if (!tabToken) {
+            console.log('[Session] Recording initial session for new tab...');
+            sessionStorage.setItem('tab_session_token', token);
+            sessionStorage.setItem('tab_session_userid', userId);
+            hideSessionMask();
+            return false;
+        }
+
+        // 4. DETECTION: If the server-rendered user (from cookie) mismatches the tab's recorded user
+        if (tabUserId !== userId) {
+            console.warn('[Session] Mismatch detected! Tab belongs to', tabUserId, 'but cookie is', userId);
+
+            // Sync the cookie back to what this tab expects
+            console.log('[Session] Syncing cookie back to tab session...');
+            const response = await fetch('/auth/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: tabToken })
+            });
+
+            if (response.ok) {
+                console.log('[Session] Sync successful. Reloading...');
+                window.location.reload();
+                return true; // Stop initialization
+            } else {
+                console.error('[Session] Sync failed. Dashboard state may be inconsistent.');
+                hideSessionMask();
+            }
+        }
+
+        hideSessionMask();
+        return false;
+    } catch (err) {
+        console.error('[Session] Error initializing session management:', err);
+        hideSessionMask();
+        return false;
+    }
+}
+
+/**
+ * Hide the session masking overlay
+ */
+function hideSessionMask() {
+    const mask = document.getElementById('session-mask');
+    if (mask) {
+        mask.classList.add('hidden');
+        // Optional: Remove from DOM after transition to be clean
+        setTimeout(() => mask.remove(), 500);
+    }
+}
+
 // Check User Tier and Update UI
 async function checkUserTier() {
     try {
-        const response = await fetch(`${API_URL}/api/payment/wallet`);
+        const response = await authFetch(`${API_URL}/api/payment/wallet`);
         if (response.ok) {
             const data = await response.json();
             window.currentUserTier = data.tier || 'free';
@@ -218,57 +419,77 @@ function initializeHeaderSearch() {
 }
 
 // Tab Management
+/**
+ * Activate a tab by name
+ */
+window.activateTab = function (tabName) {
+    const navLinks = document.querySelectorAll('.nav-item[data-tab]');
+    const targetLink = document.querySelector(`.nav-item[data-tab="${tabName}"]`);
+
+    if (!targetLink) return;
+
+    // Update URL hash for tab persistence
+    window.location.hash = tabName;
+
+    // Update active state
+    navLinks.forEach(l => {
+        l.classList.remove('active');
+        l.style.fontWeight = '400';
+        l.style.color = 'var(--text-secondary)';
+    });
+    targetLink.classList.add('active');
+    targetLink.style.fontWeight = '600';
+    targetLink.style.color = 'white';
+
+    // Handle different tabs
+    currentTab = tabName;
+    localStorage.setItem(getScopedKey('last_active_tab'), tabName);
+
+    // Toggle filters
+    const filterEl = document.getElementById('trendingFilters');
+    if (tabName === 'trending') {
+        if (filterEl) filterEl.style.display = 'flex';
+        loadTrendingTracks();
+    } else {
+        if (filterEl) filterEl.style.display = 'none';
+
+        if (tabName === 'feed') {
+            loadPersonalizedFeed();
+        } else if (tabName === 'explore') {
+            showExploreTab();
+        } else if (tabName === 'favorites') {
+            loadFavorites();
+        } else if (tabName === 'playlists') {
+            loadPlaylists();
+        } else if (tabName === 'wallet') {
+            showWalletPage();
+        } else if (tabName === 'coins') {
+            showCoinPage();
+        } else if (tabName === 'profile') {
+            showProfilePage();
+        } else if (tabName === 'upload') {
+            showUploadPage();
+        } else if (tabName === 'artist-dashboard') {
+            showArtistDashboard();
+        } else if (tabName === 'artist-tracks') {
+            showArtistTracks();
+        } else if (tabName === 'admin-stats') {
+            showAdminStats();
+        } else if (tabName === 'admin-verify') {
+            showAdminVerify();
+        } else if (tabName === 'admin-users') {
+            showAdminUsers();
+        }
+    }
+}
+
 function initializeTabs() {
     const navLinks = document.querySelectorAll('.nav-item[data-tab]');
 
     navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
-            const tabName = link.dataset.tab;
-
-            // Update URL hash for tab persistence
-            window.location.hash = tabName;
-
-            // Update active state
-            navLinks.forEach(l => {
-                l.classList.remove('active');
-                l.style.fontWeight = '400';
-                l.style.color = 'var(--text-secondary)';
-            });
-            link.classList.add('active');
-            link.style.fontWeight = '600';
-            link.style.color = 'white';
-
-            // Handle different tabs
-            currentTab = tabName;
-            localStorage.setItem(getScopedKey('last_active_tab'), tabName);
-
-            if (tabName === 'trending') {
-                const filterEl = document.getElementById('trendingFilters');
-                if (filterEl) filterEl.style.display = 'flex';
-                loadTrendingTracks();
-            } else {
-                const filterEl = document.getElementById('trendingFilters');
-                if (filterEl) filterEl.style.display = 'none';
-
-                if (tabName === 'feed') {
-                    loadPersonalizedFeed();
-                } else if (tabName === 'explore') {
-                    showExploreTab();
-                } else if (tabName === 'favorites') {
-                    loadFavorites();
-                } else if (tabName === 'playlists') {
-                    loadPlaylists();
-                } else if (tabName === 'wallet') {
-                    showWalletPage();
-                } else if (tabName === 'coins') {
-                    showCoinPage();
-                } else if (tabName === 'profile') {
-                    showProfilePage();
-                } else if (tabName === 'upload') {
-                    showUploadPage();
-                }
-            }
+            activateTab(link.dataset.tab);
         });
     });
 }
@@ -300,7 +521,7 @@ async function loadTrendingTracks() {
         let title = 'Trending';
 
         // Fetch trending tracks from music API
-        const response = await fetch(`${API_URL}/api/music/songs?time=${time}&genre=${genre}`);
+        const response = await authFetch(`${API_URL}/api/music/songs?time=${time}&genre=${genre}`);
         if (response.ok) {
             const data = await response.json();
             tracks = data.songs || [];
@@ -344,7 +565,7 @@ window.showArtistPage = async function (artistId) {
 
     try {
         // Fetch artist content HTML
-        const response = await fetch(`/artist/api/${artistId}/content`);
+        const response = await authFetch(`/artist/api/${artistId}/content`);
 
         if (!response.ok) {
             throw new Error('Failed to load artist');
@@ -399,8 +620,8 @@ window.showSongPage = async function (songId) {
     try {
         // Fetch song details and stats in parallel
         const [songRes, statsRes] = await Promise.all([
-            fetch(`${API_URL}/api/music/songs/${songId}`),
-            fetch(`${API_URL}/api/social/stats/song/${songId}`).catch(() => null)
+            authFetch(`${API_URL}/api/music/songs/${songId}`),
+            authFetch(`${API_URL}/api/social/stats/song/${songId}`).catch(() => null)
         ]);
 
         if (!songRes.ok) throw new Error('Song not found');
@@ -592,7 +813,7 @@ async function loadFavorites() {
             return;
         }
 
-        const response = await fetch(`${API_URL}/api/social/likes`);
+        const response = await authFetch(`${API_URL}/api/social/likes`);
 
         if (!response.ok) {
             throw new Error('Failed to fetch favorites');
@@ -647,7 +868,7 @@ async function loadPlaylists() {
             return;
         }
 
-        const response = await fetch(`${API_URL}/api/music/playlists/my-playlists`);
+        const response = await authFetch(`${API_URL}/api/music/playlists/my-playlists`);
 
         if (!response.ok) {
             throw new Error('Failed to fetch playlists');
@@ -737,7 +958,7 @@ async function performSearch(query) {
     `;
 
     try {
-        const response = await fetch(`${API_URL}/api/music/search?q=${encodeURIComponent(query)}`);
+        const response = await authFetch(`${API_URL}/api/music/search?q=${encodeURIComponent(query)}`);
 
         if (!response.ok) {
             throw new Error('Search failed');
@@ -893,6 +1114,7 @@ function createTrackRowHTML(track, index = null) {
 }
 
 // Handle Track Row Click (Click anywhere to play)
+// Handle Track Row Click (Click anywhere to play)
 window.handleTrackRowClick = function (event, songId) {
     // If we clicked a specific action link/button, don't trigger row play
     if (event.target.closest('.song-link') ||
@@ -979,7 +1201,7 @@ function playSong(songId) {
 // Toggle Playlist Visibility
 window.togglePlaylistVisibility = async function (playlistId, currentIsPublic) {
     try {
-        const response = await fetch(`${API_URL}/api/music/playlists/${playlistId}`, {
+        const response = await authFetch(`${API_URL}/api/music/playlists/${playlistId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ isPublic: !currentIsPublic })
@@ -1009,7 +1231,7 @@ window.createPlaylist = async function () {
             onConfirm: async (name) => {
                 if (!name) return;
                 try {
-                    const response = await fetch(`${API_URL}/api/music/playlists`, {
+                    const response = await authFetch(`${API_URL}/api/music/playlists`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ name, isPublic: true })
@@ -1060,7 +1282,7 @@ window.toggleLike = async function (songId) {
         const isLiked = window.userLikes.has(songId);
         try {
             const method = isLiked ? 'DELETE' : 'POST';
-            const response = await fetch(`${API_URL}/api/social/like/${songId}`, { method });
+            const response = await authFetch(`${API_URL}/api/social/like/${songId}`, { method });
             if (response.ok) {
                 if (isLiked) window.userLikes.delete(songId);
                 else window.userLikes.add(songId);
@@ -1107,7 +1329,7 @@ async function loadRelatedTracks(artistId, currentSongId) {
     if (!container) return;
 
     try {
-        const response = await fetch(`${API_URL}/api/music/artists/${artistId}/tracks`);
+        const response = await authFetch(`${API_URL}/api/music/artists/${artistId}/tracks`);
         if (!response.ok) throw new Error('Failed to load tracks');
 
         const data = await response.json();
@@ -1139,9 +1361,7 @@ async function loadComments(songId) {
     if (!container) return;
 
     try {
-        const response = await fetch(`${API_URL}/api/social/comments/${songId}`, {
-            credentials: 'include'
-        });
+        const response = await authFetch(`${API_URL}/api/social/comments/${songId}`);
         if (!response.ok) throw new Error('Failed to load comments');
 
         const data = await response.json();
@@ -1216,9 +1436,8 @@ window.toggleCommentLike = async function (event, commentId) {
 
     try {
         const url = `${API_URL}/api/social/like/comment/${commentId}`;
-        const response = await fetch(url, {
-            method: isLiked ? 'DELETE' : 'POST',
-            credentials: 'include'
+        const response = await authFetch(url, {
+            method: isLiked ? 'DELETE' : 'POST'
         });
 
         if (response.ok) {
@@ -1291,10 +1510,9 @@ window.postComment = async function (songId) {
     if (!text) return;
 
     try {
-        const response = await fetch(`${API_URL}/api/social/comment/${songId}`, {
+        const response = await authFetch(`${API_URL}/api/social/comment/${songId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include', // Send cookies with request
             body: JSON.stringify({
                 content: text,
                 parentId: activeParentId
@@ -1369,7 +1587,7 @@ window.shareToX = function (songId, songTitle) {
 // Repost Track
 window.repostTrack = async function (songId) {
     try {
-        const response = await fetch(`${API_URL}/api/social/reposts/${songId}`, {
+        const response = await authFetch(`${API_URL}/api/social/reposts/${songId}`, {
             method: 'POST'
         });
 
@@ -1389,6 +1607,7 @@ window.repostTrack = async function (songId) {
 };
 
 // Format time ago helper
+// Format time ago helper
 function formatTimeAgo(date) {
     const seconds = Math.floor((new Date() - new Date(date)) / 1000);
 
@@ -1398,123 +1617,396 @@ function formatTimeAgo(date) {
     if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
     return new Date(date).toLocaleDateString();
 }
-// --- Notifications ---
 
-function initializeNotifications() {
-    const notifBell = document.getElementById('notifBell');
-    const notifDropdown = document.getElementById('notifDropdown');
+// --- Roles & Dashboards ---
 
-    if (!notifBell || !notifDropdown) return;
+// Artist Dashboard (Merchant)
+window.showArtistDashboard = async function () {
+    const tracksContainer = document.getElementById('tracksContainer');
+    const feedTitle = document.getElementById('feedTitle');
+    feedTitle.textContent = 'Artist Insights';
 
-    notifBell.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isVisible = notifDropdown.style.display === 'block';
-        notifDropdown.style.display = isVisible ? 'none' : 'block';
+    tracksContainer.innerHTML = `
+        <div class="artist-dashboard">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Total Streams</p>
+                    <h2 id="totalStreams" style="font-size: 2rem; margin: 10px 0;">0</h2>
+                    <p style="font-size: 0.8rem; color: #4CAF50;"><i class="fa-solid fa-arrow-up"></i> 12% from last month</p>
+                </div>
+                <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Monthly Listeners</p>
+                    <h2 id="monthlyListeners" style="font-size: 2rem; margin: 10px 0;">0</h2>
+                    <p style="font-size: 0.8rem; color: #4CAF50;"><i class="fa-solid fa-arrow-up"></i> 5% from last month</p>
+                </div>
+                <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Artist Wallet</p>
+                    <h2 id="artistWallet" style="font-size: 2rem; margin: 10px 0;">₩0</h2>
+                    <button class="btn btn-secondary" style="width: 100%; margin-top: 10px; font-size: 0.8rem;" onclick="location.hash='#wallet'">Manage Funds</button>
+                </div>
+            </div>
 
-        if (!isVisible) {
-            loadNotifications();
-        }
-    });
+            <div style="background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 30px;">
+                <h3 style="margin-bottom: 20px;">Streaming History</h3>
+                <canvas id="artistChart" height="100"></canvas>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div style="background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <h3 style="margin-bottom: 16px;">Top Locations</h3>
+                    <div id="topLocations" style="display: flex; flex-direction: column; gap: 12px;">
+                        <p style="color: var(--text-muted);">Loading location data...</p>
+                    </div>
+                </div>
+                <div style="background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <h3 style="margin-bottom: 16px;">Listener Demographics</h3>
+                    <canvas id="demographicsChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    `;
 
-    // Close on click outside
-    document.addEventListener('click', (e) => {
-        if (!notifBell.contains(e.target) && !notifDropdown.contains(e.target)) {
-            notifDropdown.style.display = 'none';
-        }
-    });
-
-    // Initial check for a badge (visual effect)
+    // Initialize charts
     setTimeout(() => {
-        document.getElementById('notifBadge').style.display = 'block';
-    }, 2000);
-}
+        const ctx = document.getElementById('artistChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{
+                    label: 'Streams',
+                    data: [120, 190, 300, 500, 200, 300, 450],
+                    borderColor: '#7E1BCC',
+                    tension: 0.3,
+                    fill: true,
+                    backgroundColor: 'rgba(126, 27, 204, 0.1)'
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
 
-async function loadNotifications() {
-    const notifList = document.getElementById('notifList');
-    const notifBadge = document.getElementById('notifBadge');
+        const demoCtx = document.getElementById('demographicsChart').getContext('2d');
+        new Chart(demoCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Male', 'Female', 'Non-binary'],
+                datasets: [{
+                    data: [45, 40, 15],
+                    backgroundColor: ['#7E1BCC', '#CC0EFE', '#E5E5E5']
+                }]
+            }
+        });
+
+        // Mock data for locations
+        const locations = [
+            { name: 'Lagos, Nigeria', percent: 35 },
+            { name: 'London, UK', percent: 20 },
+            { name: 'New York, USA', percent: 15 },
+            { name: 'Accra, Ghana', percent: 10 }
+        ];
+        document.getElementById('topLocations').innerHTML = locations.map(l => `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.9rem;">${l.name}</span>
+                <div style="flex: 1; height: 8px; background: #eee; border-radius: 4px; margin: 0 15px; position: relative; overflow: hidden;">
+                    <div style="width: ${l.percent}%; height: 100%; background: var(--accent-gradient);"></div>
+                </div>
+                <span style="font-size: 0.8rem; font-weight: 700;">${l.percent}%</span>
+            </div>
+        `).join('');
+    }, 100);
+};
+
+// Artist Tracks Management
+window.showArtistTracks = async function () {
+    const tracksContainer = document.getElementById('tracksContainer');
+    const feedTitle = document.getElementById('feedTitle');
+    feedTitle.textContent = 'Manage Your Content';
+
+    tracksContainer.innerHTML = `
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+            <button class="btn btn-primary" onclick="location.hash='#upload'"><i class="fa-solid fa-plus"></i> Upload New Track</button>
+        </div>
+        <div id="artistTracksList">
+            <div style="text-align: center; padding: 40px;"><p>Loading your tracks...</p></div>
+        </div>
+    `;
 
     try {
-        const response = await fetch(`${API_URL}/api/recommendations/notifications`);
-        if (!response.ok) throw new Error('Failed to fetch notifications');
+        const response = await authFetch(`${API_URL}/api/music/artists/me/tracks`); // To be implemented or updated in backend
+        const data = await response.json();
+        const tracks = data.songs || [];
 
-        const { notifications } = await response.json();
-
-        if (!notifications || notifications.length === 0) {
-            notifList.innerHTML = `
-                <div style="text-align: center; padding: 24px; color: var(--text-muted);">
-                    <p style="font-size: 0.9rem; margin: 0;">No new notifications</p>
-                </div>
-            `;
+        if (tracks.length === 0) {
+            document.getElementById('artistTracksList').innerHTML = '<div style="background: var(--bg-card); padding: 40px; border-radius: 12px; text-align: center; border: 1px dashed var(--border-color);"><p style="color: var(--text-muted);">You haven\'t uploaded any tracks yet.</p></div>';
             return;
         }
 
-        notifList.innerHTML = notifications.map(notif => `
-            <div class="notif-item" onclick="handleNotificationClick('${notif.trackId || (notif.track ? notif.track.id : '')}', '${notif.type}')" 
-                style="padding: 12px 16px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s; display: flex; gap: 12px; align-items: start;">
-                <div style="width: 32px; height: 32px; background: var(--bg-secondary); border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--accent-primary);">
-                    <i class="${notif.type === 'trending' ? 'fa-solid fa-chart-line' : 'fa-solid fa-music'}"></i>
-                </div>
-                <div style="flex: 1;">
-                    <p style="margin: 0; font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">${notif.title}</p>
-                    <p style="margin: 2px 0 0 0; font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4;">${notif.message}</p>
-                    <p style="margin: 4px 0 0 0; font-size: 0.7rem; color: var(--text-muted);">${formatNotifDate(notif.date)}</p>
-                </div>
-            </div>
-        `).join('');
-
-        // Add hover effect style if not already present
-        if (!document.getElementById('notifStyles')) {
-            const style = document.createElement('style');
-            style.id = 'notifStyles';
-            style.innerHTML = `
-                .notif-item:hover { background: var(--bg-secondary); }
-                .notif-item:last-child { border-bottom: none; }
-            `;
-            document.head.appendChild(style);
-        }
-
-    } catch (error) {
-        console.error('Error loading notifications:', error);
-        notifList.innerHTML = `
-            <div style="text-align: center; padding: 24px; color: var(--text-muted);">
-                <p style="font-size: 0.9rem; margin: 0;">Failed to load notifications</p>
-            </div>
+        document.getElementById('artistTracksList').innerHTML = `
+            <table style="width: 100%; border-collapse: collapse; background: var(--bg-card); border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color);">
+                <thead>
+                    <tr style="background: var(--bg-secondary); text-align: left; font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">
+                        <th style="padding: 16px;">Track</th>
+                        <th style="padding: 16px;">Status</th>
+                        <th style="padding: 16px;">Streams</th>
+                        <th style="padding: 16px;">Date</th>
+                        <th style="padding: 16px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tracks.map(t => `
+                        <tr style="border-bottom: 1px solid var(--border-color);">
+                            <td style="padding: 16px; display: flex; align-items: center; gap: 12px;">
+                                <img src="${t.coverArtUrl || 'https://placehold.co/40'}" style="width: 40px; height: 40px; border-radius: 4px;">
+                                <div><p style="font-weight: 700;">${t.title}</p></div>
+                            </td>
+                            <td style="padding: 16px;"><span style="padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; background: #E8F5E9; color: #2E7D32;">ACTIVE</span></td>
+                            <td style="padding: 16px; font-weight: 700;">${t.playCount || 0}</td>
+                            <td style="padding: 16px; font-size: 0.85rem; color: var(--text-muted);">${new Date(t.createdAt).toLocaleDateString()}</td>
+                            <td style="padding: 16px;"><button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">Edit</button></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
         `;
+    } catch (e) {
+        document.getElementById('artistTracksList').innerHTML = '<p>Error loading tracks.</p>';
     }
-}
-
-function formatNotifDate(dateStr) {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diff = now - date;
-
-    const mins = Math.floor(diff / 60000);
-    if (mins < 60) return `${mins}m ago`;
-
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-
-    const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d ago`;
-
-    return date.toLocaleDateString();
-}
-
-window.handleNotificationClick = function (trackId, type) {
-    if (trackId) {
-        // Play track or show track page
-        if (typeof playTrack === 'function') {
-            playTrack(trackId);
-        } else {
-            window.location.hash = `song/${trackId}`;
-        }
-    }
-    document.getElementById('notifDropdown').style.display = 'none';
-    document.getElementById('notifBadge').style.display = 'none';
 };
 
-window.markAllAsRead = function () {
-    const notifBadge = document.getElementById('notifBadge');
-    if (notifBadge) notifBadge.style.display = 'none';
-    // Optionally call backend to mark as read
+// Admin Stats
+window.showAdminStats = async function () {
+    const tracksContainer = document.getElementById('tracksContainer');
+    const feedTitle = document.getElementById('feedTitle');
+    feedTitle.textContent = 'Platform Overview';
+
+    tracksContainer.innerHTML = `
+        <div class="admin-dashboard">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Total Users</p>
+                    <h2 style="font-size: 2rem; margin: 10px 0;">1,240</h2>
+                </div>
+                <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Active Artists</p>
+                    <h2 style="font-size: 2rem; margin: 10px 0;">85</h2>
+                </div>
+                <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Platform Revenue</p>
+                    <h2 style="font-size: 2rem; margin: 10px 0;">₩54.2k</h2>
+                </div>
+                <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Pending Verifications</p>
+                    <h2 style="font-size: 2rem; margin: 10px 0; color: #FFA000;">12</h2>
+                </div>
+            </div>
+
+            <div style="background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color);">
+                <h3 style="margin-bottom: 20px;">System Health</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                    <div>
+                        <p style="margin-bottom: 10px; font-weight: 600;">Auth Service</p>
+                        <div style="height: 10px; background: #eee; border-radius: 5px; overflow: hidden; margin-bottom: 20px;">
+                            <div style="width: 98%; height: 100%; background: #4CAF50;"></div>
+                        </div>
+                        <p style="margin-bottom: 10px; font-weight: 600;">Streaming Service</p>
+                        <div style="height: 10px; background: #eee; border-radius: 5px; overflow: hidden;">
+                            <div style="width: 94%; height: 100%; background: #4CAF50;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <p style="margin-bottom: 10px; font-weight: 600;">Music Catalog</p>
+                        <div style="height: 10px; background: #eee; border-radius: 5px; overflow: hidden; margin-bottom: 20px;">
+                            <div style="width: 100%; height: 100%; background: #4CAF50;"></div>
+                        </div>
+                        <p style="margin-bottom: 10px; font-weight: 600;">Internal Cache (Redis)</p>
+                        <div style="height: 10px; background: #eee; border-radius: 5px; overflow: hidden;">
+                            <div style="width: 85%; height: 100%; background: #FFA000;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+};
+
+// Admin Verification Queue
+window.showAdminVerify = async function () {
+    const tracksContainer = document.getElementById('tracksContainer');
+    const feedTitle = document.getElementById('feedTitle');
+    feedTitle.textContent = 'Artist Verification Queue';
+
+    tracksContainer.innerHTML = `
+        <div id="verifyQueue">
+            <div style="text-align: center; padding: 40px;"><p>Loading pending requests...</p></div>
+        </div>
+    `;
+
+    try {
+        const response = await authFetch(`${API_URL}/api/auth/merchants`); // Backend to be ensured
+        const data = await response.json();
+        const merchants = (data.merchants || []).filter(m => !m.isVerified);
+
+        if (merchants.length === 0) {
+            document.getElementById('verifyQueue').innerHTML = '<div style="background: var(--bg-card); padding: 40px; border-radius: 12px; text-align: center;"><p style="color: var(--text-muted);">No pending merchant verifications.</p></div>';
+            return;
+        }
+
+        document.getElementById('verifyQueue').innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                ${merchants.map(m => `
+                    <div style="background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; gap: 20px; align-items: center;">
+                            <div style="width: 60px; height: 60px; border-radius: 50%; background: var(--accent-gradient); display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 1.5rem;">${m.name[0]}</div>
+                            <div>
+                                <h3 style="margin: 0;">${m.artistName || m.name}</h3>
+                                <p style="color: var(--text-muted); font-size: 0.9rem; margin: 4px 0;">${m.email}</p>
+                                <p style="font-size: 0.8rem; background: #f0f0f0; padding: 2px 8px; border-radius: 4px; display: inline-block;">Requested: ${new Date(m.upgradedAt || Date.now()).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 12px;">
+                            <button class="btn btn-secondary" onclick="viewMerchantDetails('${m.id}')">View Bio</button>
+                            <button class="btn btn-primary" onclick="approveMerchant('${m.id}')" style="background: #2E7D32;">Verify</button>
+                            <button class="btn btn-primary" onclick="rejectMerchant('${m.id}')" style="background: #C62828;">Reject</button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } catch (e) {
+        document.getElementById('verifyQueue').innerHTML = '<p>Error loading queue.</p>';
+    }
+};
+
+window.showAdminUsers = async function () {
+    const tracksContainer = document.getElementById('tracksContainer');
+    const feedTitle = document.getElementById('feedTitle');
+    feedTitle.textContent = 'User Management';
+
+    tracksContainer.innerHTML = `
+        <div id="usersList">
+            <div style="text-align: center; padding: 40px;"><p>Loading platform users...</p></div>
+        </div>
+    `;
+
+    try {
+        const response = await authFetch(`${API_URL}/api/auth/users`);
+        const data = await response.json();
+        const users = data.users || [];
+
+        document.getElementById('usersList').innerHTML = `
+            <table style="width: 100%; border-collapse: collapse; background: var(--bg-card); border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color);">
+                <thead>
+                    <tr style="background: var(--bg-secondary); text-align: left; font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">
+                        <th style="padding: 16px;">User</th>
+                        <th style="padding: 16px;">Role</th>
+                        <th style="padding: 16px;">Joined</th>
+                        <th style="padding: 16px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${users.map(u => `
+                        <tr style="border-bottom: 1px solid var(--border-color);">
+                            <td style="padding: 16px;">
+                                <p style="font-weight: 700; margin: 0;">${u.name}</p>
+                                <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">${u.email}</p>
+                            </td>
+                            <td style="padding: 16px;">
+                                <span style="padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; background: ${u.isAdmin ? '#FFF3E0' : '#E3F2FD'}; color: ${u.isAdmin ? '#E65100' : '#1565C0'};">
+                                    ${u.isAdmin ? 'ADMIN' : (u.userType === 'merchant' ? 'ARTIST' : 'CONSUMER')}
+                                </span>
+                            </td>
+                            <td style="padding: 16px; font-size: 0.85rem; color: var(--text-muted);">${new Date(u.createdAt).toLocaleDateString()}</td>
+                            <td style="padding: 16px;">
+                                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="deleteUser('${u.id}')">Delete</button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    } catch (e) {
+        document.getElementById('usersList').innerHTML = '<p>Error loading users.</p>';
+    }
+};
+
+window.approveMerchant = async function (merchantId) {
+    if (!confirm('Verify this artist? They will be able to upload music and receive payouts.')) return;
+
+    try {
+        const response = await authFetch(`${API_URL}/api/auth/merchants/${merchantId}/verify`, {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            alert('Artist verified successfully!');
+            showAdminVerify();
+        } else {
+            const data = await response.json();
+            alert('Failed: ' + (data.message || 'Unknown error'));
+        }
+    } catch (e) {
+        alert('Verification failed. Server unreachable.');
+    }
+};
+
+window.rejectMerchant = async function (merchantId) {
+    const reason = prompt('Reason for rejection:');
+    if (reason === null) return;
+
+    try {
+        const response = await authFetch(`${API_URL}/api/auth/merchants/${merchantId}/unverify`, {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            alert('Merchant request rejected.');
+            showAdminVerify();
+        } else {
+            alert('Failed to reject request.');
+        }
+    } catch (e) {
+        alert('Action failed.');
+    }
+};
+
+window.viewMerchantDetails = function (merchantId) {
+    alert('Viewing details for merchant ID: ' + merchantId);
+};
+
+window.showSettingsPage = function () {
+    window.location.href = '/settings';
+};
+
+window.showUploadPage = function () {
+    const tracksContainer = document.getElementById('tracksContainer');
+    const feedTitle = document.getElementById('feedTitle');
+    feedTitle.textContent = 'Upload New Content';
+
+    tracksContainer.innerHTML = `
+        <div style="max-width: 600px; margin: 0 auto; background: var(--bg-card); padding: 32px; border-radius: 12px; border: 1px solid var(--border-color);">
+            <div id="uploadForm" class="auth-form">
+                <div class="form-group">
+                    <label>Track Title</label>
+                    <input type="text" id="trackTitle" placeholder="Enter track title">
+                </div>
+                <div class="form-group">
+                    <label>Genre</label>
+                    <select id="trackGenre" style="padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px;">
+                        <option value="Electronic">Electronic</option>
+                        <option value="Hip-Hop">Hip-Hop</option>
+                        <option value="Pop">Pop</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Audio File</label>
+                    <input type="file" id="audioFile" accept="audio/*">
+                </div>
+                <div class="form-group">
+                    <label>Cover Art</label>
+                    <input type="file" id="coverArt" accept="image/*">
+                </div>
+                <button class="btn btn-primary" style="margin-top: 20px;" onclick="alert('Upload functionality pending backend integration.')">Upload Track</button>
+            </div>
+        </div>
+    `;
 };
