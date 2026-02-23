@@ -73,6 +73,11 @@ async function initializePayment(req, res) {
                 customer: {
                     email: user.email,
                     name: user.name || 'Audius User'
+                },
+                customizations: {
+                    title: "Audius Clone - Wallet Funding",
+                    description: `Funding wallet with ${currency || 'NGN'} ${amount}`,
+                    logo: `${process.env.FRONTEND_URL || 'http://localhost:8080'}/public/images/logo.png`
                 }
             }
         });

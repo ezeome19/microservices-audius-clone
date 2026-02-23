@@ -159,6 +159,28 @@ async function findAllUsers() {
     return await User.findAll({ attributes: { exclude: ['password'] } });
 }
 
+// Admin: Change user role (userType and/or isAdmin)
+async function updateUserRole(userId, { userType, isAdmin }) {
+    const user = await User.findByPk(userId);
+    if (!user) return null;
+
+    if (userType !== undefined) user.userType = userType;
+    if (isAdmin !== undefined) user.isAdmin = isAdmin;
+
+    await user.save();
+    return user;
+}
+
+// Admin: Verify a user's email
+async function verifyUserEmail(userId) {
+    const user = await User.findByPk(userId);
+    if (!user) return null;
+
+    user.isEmailVerified = true;
+    await user.save();
+    return user;
+}
+
 module.exports = {
     findCurrentUser,
     findUserByEmail,
@@ -171,5 +193,7 @@ module.exports = {
     deleteUser,
     getUserPreferences,
     updateUserPreferences,
-    upgradeUserToMerchant
+    upgradeUserToMerchant,
+    updateUserRole,
+    verifyUserEmail
 };

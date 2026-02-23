@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Load Consolidated Artist Stats
 async function loadArtistStats() {
     try {
-        const response = await fetch(`${API_URL}/api/social/stats/${artistId}`);
+        const response = await (window.authFetch || fetch)(`${API_URL}/api/social/stats/${artistId}`);
         const data = await response.json();
 
         if (response.ok && data.stats) {
@@ -206,11 +206,10 @@ async function handleCoinPurchase() {
     purchaseBtn.textContent = 'Processing...';
 
     try {
-        const response = await fetch(`${API_URL}/api/coins/purchase`, {
+        const response = await (window.authFetch || fetch)(`${API_URL}/api/coins/purchase`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'x-auth-token': getCookie('token')
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 artistId,
@@ -221,23 +220,16 @@ async function handleCoinPurchase() {
 
         const data = await response.json();
 
-        if (response.ok && data.publicKey) {
-            // Use Inline Flow
-            makePayment(data, (paymentData) => {
-                // Success callback - use Flutterwave's transaction_id
-                window.location.href = `/payment/verify?transaction_id=${paymentData.transaction_id}&status=successful`;
-            });
-        } else if (response.ok && data.paymentLink) {
-            // Fallback to redirect
-            window.location.href = data.paymentLink;
+        if (response.ok && data.paymentLink) {
+            // Use Custom Modal for Flutterwave Hosted Checkout
+            window.showFlutterwaveCustomModal(data, 'artist');
         } else {
-            alert(data.message || 'Failed to initialize payment');
-            purchaseBtn.disabled = false;
-            purchaseBtn.textContent = `Buy with ${selectedCurrency}`;
+            alert(data.error || data.message || 'Failed to initialize payment');
         }
     } catch (error) {
         console.error('Purchase error:', error);
-        alert('Failed to process purchase');
+        alert('An error occurred. Please try again.');
+    } finally {
         purchaseBtn.disabled = false;
         purchaseBtn.textContent = `Buy with ${selectedCurrency}`;
     }
@@ -252,14 +244,13 @@ async function handleSendTip() {
 
     const sendTipBtn = document.getElementById('sendTipBtn');
     sendTipBtn.disabled = true;
-    sendTipBtn.textContent = 'Processing...';
+    sendTipBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...';
 
     try {
-        const response = await fetch(`${API_URL}/api/payment/tips/${artistId}`, {
+        const response = await (window.authFetch || fetch)(`${API_URL}/api/payment/tips/${artistId}`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'x-auth-token': getCookie('token')
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 amount: tipAmount,
@@ -270,63 +261,19 @@ async function handleSendTip() {
 
         const data = await response.json();
 
-        if (response.ok && data.publicKey) {
-            makePayment(data, (paymentData) => {
-                // Use Flutterwave's transaction_id, not our tx_ref
-                window.location.href = `/payment/verify?transaction_id=${paymentData.transaction_id}&status=successful`;
-            });
-        } else if (response.ok && data.paymentLink) {
-            window.location.href = data.paymentLink;
+        if (response.ok && data.paymentLink) {
+            // Use Custom Modal for Flutterwave Hosted Checkout
+            window.showFlutterwaveCustomModal(data, 'artist');
         } else {
-            alert(data.message || 'Failed to initialize tip');
-            sendTipBtn.disabled = false;
-            sendTipBtn.textContent = 'Send Tip';
+            alert(`${data.error || data.message || 'Failed to initiate payment'}`);
         }
     } catch (error) {
         console.error('Tip error:', error);
-        alert('Failed to process tip');
+        alert('An error occurred. Please try again.');
+    } finally {
         sendTipBtn.disabled = false;
         sendTipBtn.textContent = 'Send Tip';
     }
-}
-
-// Flutterwave Inline Payment Helper
-function makePayment(data, onSuccess) {
-    FlutterwaveCheckout({
-        public_key: data.publicKey,
-        tx_ref: data.tx_ref,
-        amount: data.amount,
-        currency: data.currency,
-        payment_options: "card, base, mobilemoneyghana, ussd",
-        redirect_url: data.redirect_url, // For fallback
-        customer: {
-            email: data.customer.email,
-            name: data.customer.name,
-        },
-        callback: function (paymentData) {
-            console.log("Payment successful", paymentData);
-            if (onSuccess) onSuccess(paymentData);
-        },
-        onclose: function () {
-            console.log("Payment modal closed");
-            // Re-enable buttons if needed
-            const purchaseBtn = document.getElementById('purchaseBtn');
-            const sendTipBtn = document.getElementById('sendTipBtn');
-            if (purchaseBtn) {
-                purchaseBtn.disabled = false;
-                purchaseBtn.textContent = `Buy with ${selectedCurrency}`;
-            }
-            if (sendTipBtn) {
-                sendTipBtn.disabled = false;
-                sendTipBtn.textContent = 'Send Tip';
-            }
-        },
-        customizations: {
-            title: "Audius Clone",
-            description: data.message || "Payment for coins/tip",
-            logo: `${window.location.origin}/public/images/logo.png`,
-        },
-    });
 }
 
 // Tab Management
@@ -376,12 +323,7 @@ async function loadAlbums() {
     `;
 
     try {
-        const token = getCookie('token');
-        const response = await fetch(`${API_URL}/api/music/artists/${artistId}/albums`, {
-            headers: {
-                'x-auth-token': token
-            }
-        });
+        const response = await (window.authFetch || fetch)(`${API_URL}/api/music/artists/${artistId}/albums`);
 
         if (!response.ok) {
             throw new Error('Failed to fetch albums');
@@ -450,12 +392,7 @@ async function loadPlaylists() {
     `;
 
     try {
-        const token = getCookie('token');
-        const response = await fetch(`${API_URL}/api/music/artists/${artistId}/playlists`, {
-            headers: {
-                'x-auth-token': token
-            }
-        });
+        const response = await (window.authFetch || fetch)(`${API_URL}/api/music/artists/${artistId}/playlists`);
 
         if (!response.ok) {
             throw new Error('Failed to fetch playlists');
@@ -524,14 +461,8 @@ async function loadExclusiveContent() {
     `;
 
     try {
-        const token = getCookie('token');
-
         // Fetch exclusive songs for this artist
-        const response = await fetch(`${API_URL}/api/music/songs?artistId=${artistId}&isExclusive=true`, {
-            headers: {
-                'x-auth-token': token
-            }
-        });
+        const response = await (window.authFetch || fetch)(`${API_URL}/api/music/songs?artistId=${artistId}&isExclusive=true`);
 
         if (!response.ok) {
             throw new Error('Failed to fetch exclusive content');
@@ -541,11 +472,7 @@ async function loadExclusiveContent() {
         const exclusiveSongs = data.songs || [];
 
         // Fetch user's coin wallets
-        const walletResponse = await fetch(`${API_URL}/api/payment/coins/wallets`, {
-            headers: {
-                'x-auth-token': token
-            }
-        });
+        const walletResponse = await (window.authFetch || fetch)(`${API_URL}/api/payment/coins/wallets`);
 
         let userWallets = [];
         if (walletResponse.ok) {
@@ -586,9 +513,8 @@ window.toggleLike = async function (event, songId) {
 
     try {
         const method = isLiked ? 'DELETE' : 'POST';
-        const response = await fetch(`${API_URL}/api/social/like/${songId}`, {
-            method,
-            headers: { 'x-auth-token': getCookie('token') }
+        const response = await (window.authFetch || fetch)(`${API_URL}/api/social/like/${songId}`, {
+            method
         });
 
         if (response.ok) {
@@ -698,11 +624,7 @@ async function checkInitialFollowStatus() {
     if (!followBtn) return;
 
     try {
-        const response = await fetch(`${API_URL}/api/social/follow/status/${artistId}`, {
-            headers: {
-                'x-auth-token': getCookie('token')
-            }
-        });
+        const response = await (window.authFetch || fetch)(`${API_URL}/api/social/follow/status/${artistId}`);
 
         if (response.ok) {
             const data = await response.json();
@@ -730,11 +652,8 @@ function initializeFollowButton() {
 
         try {
             const method = isFollowing ? 'DELETE' : 'POST';
-            const response = await fetch(`${API_URL}/api/social/follow/${artistId}`, {
-                method,
-                headers: {
-                    'x-auth-token': getCookie('token')
-                }
+            const response = await (window.authFetch || fetch)(`${API_URL}/api/social/follow/${artistId}`, {
+                method
             });
 
             if (response.ok) {
@@ -796,37 +715,7 @@ window.handleTrackRowClick = function (event, songId) {
     playSong(songId);
 };
 
-window.toggleLike = async function (event, songId) {
-    const indicator = event ? event.currentTarget.closest('.like-indicator') : document.querySelector(`.audius-track-row[data-song-id="${songId}"] .like-indicator`);
-    if (!indicator) return;
 
-    const icon = indicator.querySelector('i');
-    const isLiked = indicator.classList.contains('liked') || icon.classList.contains('fa-solid');
-
-    try {
-        const method = isLiked ? 'DELETE' : 'POST';
-        const response = await fetch(`${API_URL}/api/social/like/${songId}`, {
-            method,
-            headers: { 'x-auth-token': getCookie('token') }
-        });
-
-        if (response.ok) {
-            const allIndicators = document.querySelectorAll(`.audius-track-row[data-song-id="${songId}"] .like-indicator, .track-stats[data-song-id="${songId}"] .like-indicator`);
-            allIndicators.forEach(ind => {
-                const i = ind.querySelector('i');
-                if (isLiked) {
-                    ind.classList.remove('liked');
-                    i.classList.replace('fa-solid', 'fa-regular');
-                } else {
-                    ind.classList.add('liked');
-                    i.classList.replace('fa-regular', 'fa-solid');
-                }
-            });
-        }
-    } catch (e) {
-        console.error('Like toggle failed:', e);
-    }
-};
 // Social Menus & Actions
 function initializeSocialMenus() {
     const artistMoreBtn = document.getElementById('artistMoreBtn');
@@ -893,7 +782,7 @@ async function loadComments(songId) {
     list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Loading comments...</div>';
 
     try {
-        const response = await fetch(`${API_URL}/api/social/comments/${songId}`);
+        const response = await (window.authFetch || fetch)(`${API_URL}/api/social/comments/${songId}`);
         const data = await response.json();
 
         if (response.ok) {
@@ -901,23 +790,7 @@ async function loadComments(songId) {
             if (comments.length === 0) {
                 list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No comments yet. Be the first to comment!</div>';
             } else {
-                // Build a tree of comments
-                const commentMap = {};
-                const topLevelComments = [];
-
-                comments.forEach(c => {
-                    commentMap[c.id] = { ...c, replies: [] };
-                });
-
-                comments.forEach(c => {
-                    if (c.parentId && commentMap[c.parentId]) {
-                        commentMap[c.parentId].replies.push(commentMap[c.id]);
-                    } else {
-                        topLevelComments.push(commentMap[c.id]);
-                    }
-                });
-
-                list.innerHTML = topLevelComments.map(c => renderCommentItem(c)).join('');
+                list.innerHTML = comments.map(c => renderCommentItem(c)).join('');
 
                 // Update comment count in track row
                 const countBadge = document.querySelector(`.comment-count-${songId}`);
@@ -932,24 +805,36 @@ async function loadComments(songId) {
 
 function renderCommentItem(c, depth = 0) {
     const timeAgo = formatTimeAgo(c.createdAt);
+    const hasReplies = c.replies && c.replies.length > 0;
+    const isReply = depth > 0;
+    const isLiked = c.isLiked || (window.userCommentLikes && window.userCommentLikes.has(c.id));
+    const likeCount = c.likeCount || 0;
+
     return `
-        <div class="comment-item" style="margin-left: ${depth * 24}px; border-left: ${depth > 0 ? '2px solid var(--border-color)' : 'none'}; padding-left: ${depth > 0 ? '12px' : '0'};">
-            <div class="comment-avatar"></div>
+        <div class="comment-item ${isReply ? 'is-reply' : ''}" style="margin-left: ${depth * 16}px; border-left: ${depth > 0 ? '1px solid var(--border-color)' : 'none'}; padding-left: ${depth > 0 ? '12px' : '0'};">
+            <div class="comment-avatar" style="${isReply ? 'width: 24px; height: 24px;' : ''}"></div>
             <div class="comment-body">
                 <div style="display: flex; justify-content: space-between; align-items: start;">
-                    <div class="comment-user">${c.userName || 'User ' + c.userId.substring(0, 8)}</div>
-                    <div class="comment-date">${timeAgo}</div>
+                    <div class="comment-user" style="${isReply ? 'font-size: 0.8rem;' : ''}">${c.userName || 'User ' + c.userId.substring(0, 8)}</div>
+                    <div class="comment-date" style="${isReply ? 'font-size: 0.7rem;' : ''}">${timeAgo}</div>
                 </div>
-                <div class="comment-text">${c.content}</div>
-                <div class="comment-actions" style="display: flex; gap: 16px; margin-top: 8px;">
-                    <button onclick="toggleCommentLike(event, '${c.id}')" class="comment-action-btn" style="background: none; border: none; font-size: 0.8rem; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                        <i class="fa-regular fa-heart"></i> Like
+                <div class="comment-text" style="${isReply ? 'font-size: 0.85rem;' : ''}">${c.content}</div>
+                <div class="comment-actions" style="display: flex; gap: 12px; margin-top: 4px;">
+                    <button onclick="toggleCommentLike(event, '${c.id}')" class="comment-action-btn" data-liked="${isLiked}" style="background: none; border: none; font-size: 0.75rem; color: ${isLiked ? '#CC0EF0' : 'var(--text-secondary)'}; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                        <i class="fa-${isLiked ? 'solid' : 'regular'} fa-heart"></i> <span class="like-count">${likeCount}</span>
                     </button>
-                    <button onclick="replyToComment('${c.id}', '${c.userName || 'User'}')" class="comment-action-btn" style="background: none; border: none; font-size: 0.8rem; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                    ${!isReply ? `
+                    <button onclick="replyToComment('${c.id}', '${c.userName || 'User'}')" class="comment-action-btn" style="background: none; border: none; font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 4px;">
                         <i class="fa-regular fa-comment"></i> Reply
                     </button>
+                    ` : ''}
+                    ${hasReplies ? `
+                    <button onclick="toggleReplies(event, '${c.id}')" class="comment-action-btn toggle-replies-btn" style="background: none; border: none; font-size: 0.75rem; color: #CC0EF0; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-chevron-down"></i> Show Replies (${c.replies.length})
+                    </button>
+                    ` : ''}
                 </div>
-                <div class="replies">
+                <div id="replies-${c.id}" class="replies">
                     ${(c.replies || []).map(reply => renderCommentItem(reply, depth + 1)).join('')}
                 </div>
             </div>
@@ -957,31 +842,62 @@ function renderCommentItem(c, depth = 0) {
     `;
 }
 
+window.toggleReplies = function (event, commentId) {
+    const repliesDiv = document.getElementById(`replies-${commentId}`);
+    if (!repliesDiv) return;
+    const btn = event.currentTarget;
+    const count = repliesDiv.children.length;
+    const isHidden = !repliesDiv.classList.contains('show');
+
+    if (isHidden) {
+        repliesDiv.classList.add('show');
+        btn.innerHTML = `<i class="fa-solid fa-chevron-up"></i> Hide Replies (${count})`;
+    } else {
+        repliesDiv.classList.remove('show');
+        btn.innerHTML = `<i class="fa-solid fa-chevron-down"></i> Show Replies (${count})`;
+    }
+}
+
 window.toggleCommentLike = async function (event, commentId) {
     const btn = event.currentTarget;
     const icon = btn.querySelector('i');
-    const isLiked = icon.classList.contains('fa-solid');
+    const countSpan = btn.querySelector('.like-count');
+    const isLiked = btn.dataset.liked === 'true';
 
     try {
         const url = `${API_URL}/api/social/like/comment/${commentId}`;
-        const response = await fetch(url, {
-            method: isLiked ? 'DELETE' : 'POST',
-            headers: { 'x-auth-token': getCookie('token') }
+        const response = await (window.authFetch || fetch)(url, {
+            method: isLiked ? 'DELETE' : 'POST'
         });
 
         if (response.ok) {
-            if (isLiked) {
-                icon.classList.replace('fa-solid', 'fa-regular');
-                icon.style.color = 'var(--text-secondary)';
-                btn.style.color = 'var(--text-secondary)';
-            } else {
+            const newIsLiked = !isLiked;
+            btn.dataset.liked = newIsLiked;
+
+            // Update local set if exists (shared with other functions)
+            if (window.userCommentLikes) {
+                if (newIsLiked) window.userCommentLikes.add(commentId);
+                else window.userCommentLikes.delete(commentId);
+            }
+
+            // Update UI
+            if (newIsLiked) {
                 icon.classList.replace('fa-regular', 'fa-solid');
                 icon.style.color = '#CC0EF0';
                 btn.style.color = '#CC0EF0';
+                if (countSpan) countSpan.textContent = parseInt(countSpan.textContent || '0') + 1;
+            } else {
+                icon.classList.replace('fa-solid', 'fa-regular');
+                icon.style.color = 'var(--text-secondary)';
+                btn.style.color = 'var(--text-secondary)';
+                if (countSpan) countSpan.textContent = Math.max(0, parseInt(countSpan.textContent || '1') - 1);
             }
+        } else {
+            const errorData = await response.json();
+            console.error('Comment like/unlike failed:', errorData.message);
         }
     } catch (err) {
-        console.error('Comment like failed:', err);
+        console.error('Comment like/unlike network error:', err);
     }
 }
 
@@ -1029,11 +945,10 @@ document.getElementById('postCommentBtn')?.addEventListener('click', async () =>
     btn.disabled = true;
 
     try {
-        const response = await fetch(`${API_URL}/api/social/comment/${currentCommentSongId}`, {
+        const response = await (window.authFetch || fetch)(`${API_URL}/api/social/comment/${currentCommentSongId}`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'x-auth-token': getCookie('token')
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 content,

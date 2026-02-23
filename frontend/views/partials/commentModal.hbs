@@ -6,8 +6,14 @@
         <div
             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-shrink: 0;">
             <h2 id="commentModalTitle" style="margin: 0;">Comments</h2>
-            <button class="modal-close"
-                style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <button id="commentMinimizeBtn" title="Minimize comments"
+                    style="background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--text-secondary); padding: 4px 8px; transition: color 0.2s;">
+                    <i class="fa-solid fa-window-minimize"></i>
+                </button>
+                <button class="modal-close"
+                    style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+            </div>
         </div>
 
         <!-- Comments List -->
@@ -31,12 +37,55 @@
     </div>
 </div>
 
+<!-- Minimized Comment Pill -->
+<div id="commentMinimizedPill"
+    style="display: none; position: fixed; bottom: 100px; right: 24px; z-index: 1100; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 24px; padding: 10px 20px; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,0.4); transition: transform 0.2s, box-shadow 0.2s;"
+    onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 12px 32px rgba(0,0,0,0.5)'"
+    onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.4)'">
+    <span style="font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+        💬 <span id="commentPillLabel">Comments</span>
+        <i class="fa-solid fa-chevron-up" style="font-size: 0.7rem; color: var(--text-muted);"></i>
+    </span>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const minimizeBtn = document.getElementById('commentMinimizeBtn');
+        const pill = document.getElementById('commentMinimizedPill');
+        const modal = document.getElementById('commentModal');
+
+        if (minimizeBtn) {
+            minimizeBtn.addEventListener('click', () => {
+                // Count comments
+                const count = document.querySelectorAll('#commentsList .comment-item').length;
+                document.getElementById('commentPillLabel').textContent = `Comments (${count})`;
+                modal.style.display = 'none';
+                pill.style.display = 'block';
+            });
+        }
+
+        if (pill) {
+            pill.addEventListener('click', () => {
+                pill.style.display = 'none';
+                modal.style.display = 'flex';
+            });
+        }
+    });
+</script>
+
 <style>
     .comment-item {
         display: flex;
         gap: 12px;
         padding-bottom: 16px;
         border-bottom: 1px solid var(--bg-secondary);
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .comment-item.is-reply {
+        padding-bottom: 10px;
+        border-bottom: none;
     }
 
     .comment-avatar {
@@ -49,6 +98,7 @@
 
     .comment-body {
         flex: 1;
+        min-width: 0;
     }
 
     .comment-user {
@@ -67,5 +117,16 @@
         font-size: 0.8rem;
         color: var(--text-muted);
         margin-top: 4px;
+    }
+
+    .replies {
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 8px;
+    }
+
+    .replies.show {
+        display: flex;
     }
 </style>

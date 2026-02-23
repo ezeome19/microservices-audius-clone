@@ -136,7 +136,7 @@ window.showWalletPage = function () {
 
 async function loadWalletData() {
     try {
-        const response = await fetch(`${window.location.origin}/api/payment/wallet`);
+        const response = await (window.authFetch || fetch)(`${window.location.origin}/api/payment/wallet`);
         if (response.ok) {
             const data = await response.json();
             const balUSD = data.balanceUSD || 0;
@@ -260,7 +260,7 @@ window.fundWallet = function () {
                     btn.innerText = 'Initializing...';
                 }
 
-                const response = await fetch(`${window.location.origin}/api/payment/initialize`, {
+                const response = await (window.authFetch || fetch)(`${window.location.origin}/api/payment/initialize`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -273,52 +273,20 @@ window.fundWallet = function () {
 
                 const result = await response.json();
 
-                if (result.status === 'success' && result.data && result.data.publicKey) {
-                    FlutterwaveCheckout({
-                        public_key: result.data.publicKey,
-                        tx_ref: result.data.tx_ref,
-                        amount: result.data.amount,
-                        currency: result.data.currency,
-                        payment_options: "card, banktransfer, ussd",
-                        customer: {
-                            email: result.data.customer.email,
-                            name: result.data.customer.name,
-                        },
-                        callback: function (data) {
-                            console.log("Payment successful", data);
-                            // Use Flutterwave's transaction_id, not our tx_ref
-                            window.location.href = `/payment/verify?transaction_id=${data.transaction_id}&status=successful`;
-                        },
-                        onclose: function () {
-                            if (btn) {
-                                btn.disabled = false;
-                                btn.innerText = originalText;
-                            }
-                        },
-                        customizations: {
-                            title: "Audius Wallet Funding",
-                            description: `Funding account with ${currency} ${amount}`,
-                            logo: "https://audius.co/logo.png",
-                        },
-                    });
+                if (result.status === 'success' && result.data && result.data.link) {
+                    // Use Custom Iframe Modal for Flutterwave Hosted checkout
+                    window.showFlutterwaveCustomModal(result.data, 'wallet');
+
+                    // Close the choice modal if it exists
+                    const choiceModal = document.querySelector('.custom-modal-overlay');
+                    if (choiceModal) choiceModal.remove();
                 } else {
-                    window.showCustomModal({
-                        title: "Funding Failed",
-                        content: `We couldn't initialize your payment: ${result.message || 'Unknown error'}`,
-                        confirmText: "Close"
-                    });
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.innerText = originalText;
-                    }
+                    alert('Payment initialization failed: ' + (result.message || 'Unknown error'));
                 }
-            } catch (error) {
-                console.error('Funding error:', error);
-                window.showCustomModal({
-                    title: "System Error",
-                    content: "A network error occurred while connecting to our payment servers. Please try again later.",
-                    confirmText: "Close"
-                });
+            } catch (err) {
+                console.error('Funding error:', err);
+                alert('An error occurred. Please try again.');
+            } finally {
                 if (btn) {
                     btn.disabled = false;
                     btn.innerText = originalText;
@@ -357,7 +325,7 @@ window.withdrawCash = function () {
             }
 
             try {
-                const response = await fetch(`${window.location.origin}/api/payment/withdraw`, {
+                const response = await (window.authFetch || fetch)(`${window.location.origin}/api/payment/withdraw`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ amount: parseFloat(amount), currency, bankCode, accountNumber })
@@ -617,11 +585,10 @@ window.showPaymentMethodModal = function ({ tier, amount, currency, aTokens, str
 
 async function handleWalletSubscription(tier, currency, amount, aTokens, streams) {
     try {
-        const response = await fetch('/api/payment/subscriptions/wallet-purchase', {
+        const response = await (window.authFetch || fetch)('/api/payment/subscriptions/wallet-purchase', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'x-auth-token': getCookie('token')
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({ tier, currency })
         });
@@ -658,11 +625,10 @@ async function handleWalletSubscription(tier, currency, amount, aTokens, streams
 
 async function handleFlutterwaveSubscription(tier, currency, amount) {
     try {
-        const response = await fetch(`${window.location.origin}/api/payment/subscriptions/subscribe`, {
+        const response = await (window.authFetch || fetch)(`${window.location.origin}/api/payment/subscriptions/subscribe`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'x-auth-token': getCookie('token')
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 tier: tier,
@@ -674,33 +640,12 @@ async function handleFlutterwaveSubscription(tier, currency, amount) {
         const result = await response.json();
 
         if (response.ok && result.paymentLink) {
-            // The specialized endpoint returns a full payment link or reference
-            // Redirect or use FlutterwaveCheckout
-            FlutterwaveCheckout({
-                public_key: result.publicKey,
-                tx_ref: result.reference,
-                amount: amount,
-                currency: currency,
-                payment_options: "card, banktransfer, ussd",
-                customer: {
-                    email: result.customer.email,
-                    name: result.customer.name,
-                },
-                callback: function (paymentData) {
-                    console.log("Subscription successful", paymentData);
-                    // Use Flutterwave's transaction_id, not our tx_ref
-                    window.location.href = `/payment/verify?transaction_id=${paymentData.transaction_id}&status=successful&type=subscription`;
-                },
+            // Use Custom Modal for Flutterwave Hosted Checkout
+            window.showFlutterwaveCustomModal(result, 'wallet');
 
-                onclose: function () {
-                    console.log("Subscription payment closed");
-                },
-                customizations: {
-                    title: "Audius Subscription",
-                    description: `${tier.toUpperCase()} Plan - ${currency} ${amount}`,
-                    logo: "https://audius.co/logo.png",
-                }
-            });
+            // Close the plan selection modal if open
+            const subModal = document.querySelector('.subscription-modal-overlay');
+            if (subModal) subModal.remove();
         } else {
             window.alert("Failed to initialize payment. Please try again.");
         }

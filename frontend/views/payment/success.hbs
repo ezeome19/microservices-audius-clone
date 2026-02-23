@@ -116,6 +116,12 @@
     </div>
 
     <script>
+        // If loaded in an iframe, notify parent window to close the modal
+        if (window.parent && window.parent !== window) {
+            console.log('[Verification] Notifying parent of successful payment');
+            window.parent.postMessage('payment_complete', '*');
+        }
+
         // No automatic resume_audio flag here. 
         // AudioPlayer.restorePlayerState() will handle resumption naturally
         // if state.isPlaying was true before the redirect.

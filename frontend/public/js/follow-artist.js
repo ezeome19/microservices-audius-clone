@@ -12,7 +12,7 @@ window.toggleFollowArtist = async function (artistId, buttonElement) {
 
         const method = isFollowing ? 'DELETE' : 'POST';
 
-        const response = await fetch(endpoint, {
+        const response = await (window.authFetch || fetch)(endpoint, {
             method: method,
             headers: { 'Content-Type': 'application/json' }
         });

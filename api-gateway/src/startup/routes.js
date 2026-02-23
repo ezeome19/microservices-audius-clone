@@ -8,8 +8,22 @@ const { errorMiddleware } = require('../../../shared');
 module.exports = function (app) {
     // app.use(express.json()); // REMOVED: Body parsing interferes with proxying!
     app.use(requestLogger); // Request logging
-    app.get('/health', (req, res) => {
-        res.json({ status: 'healthy', services: services });
+    app.get('/health', async (req, res) => {
+        const results = {};
+        const checks = Object.entries(services).map(async ([name, url]) => {
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 3000);
+                const resp = await fetch(`${url}/health`, { signal: controller.signal });
+                clearTimeout(timeout);
+                results[name] = { url, status: resp.ok ? 'up' : 'down' };
+            } catch {
+                results[name] = { url, status: 'down' };
+            }
+        });
+        await Promise.all(checks);
+        const allUp = Object.values(results).every(s => s.status === 'up');
+        res.json({ status: allUp ? 'healthy' : 'degraded', services: results });
     });
 
     // Proxy routes to microservices

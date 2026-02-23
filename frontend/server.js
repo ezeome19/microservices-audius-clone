@@ -1,6 +1,23 @@
 const fastify = require('fastify')({ logger: true });
-// Force restart
 const path = require('path');
+
+// Register Security Headers
+fastify.register(require('@fastify/helmet'), {
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://*.flutterwave.com", "https://*.f4b-flutterwave.com", "https://checkout.flutterwave.com", "https://kit.fontawesome.com", "https://unpkg.com", "https://cdn.jsdelivr.net"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+            fontSrc: ["'self'", "https://*", "data:"],
+            imgSrc: ["'self'", "data:", "https://*", "http://*"], // Allow images from anywhere (album art)
+            connectSrc: ["'self'", "https://*", "http://*"], // Allow API calls
+            frameSrc: ["'self'", "https://*.flutterwave.com", "https://*.f4b-flutterwave.com", "https://checkout.flutterwave.com"],
+            mediaSrc: ["'self'", "https://*"],
+            scriptSrcAttr: ["'unsafe-inline'"],
+            upgradeInsecureRequests: null
+        }
+    }
+});
 
 // Register plugins
 fastify.register(require('@fastify/static'), {
@@ -53,6 +70,14 @@ fastify.register(require('@fastify/http-proxy'), {
             return headers;
         }
     }
+});
+
+// Proxy /health to API gateway for admin dashboard service health monitoring
+fastify.register(require('@fastify/http-proxy'), {
+    upstream: process.env.API_GATEWAY_URL || 'http://localhost:3000',
+    prefix: '/health',
+    rewritePrefix: '/health',
+    http2: false
 });
 
 // Register routes

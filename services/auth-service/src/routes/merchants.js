@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware, adminMiddleware, validateMiddleware, authLimiter } = require('../../../../shared');
+const { authMiddleware, adminMiddleware, merchantMiddleware, validateMiddleware, authLimiter } = require('../../../../shared');
 const {
     signupMerchant,
     loginMerchant,
@@ -19,8 +19,8 @@ const {
 // Rate-limited authentication endpoints (prevent brute force)
 router.post('/signup', authLimiter, validateMiddleware(validateMerchantSignup), signupMerchant);
 router.post('/login', authLimiter, validateMiddleware(validateLogin), loginMerchant);
-router.get('/me', authMiddleware, getCurrentMerchant);
-router.put('/profile', [authMiddleware, validateMiddleware(validateProfileUpdate)], updateMerchantProfileController);
+router.get('/me', [authMiddleware, merchantMiddleware], getCurrentMerchant);
+router.put('/profile', [authMiddleware, merchantMiddleware, validateMiddleware(validateProfileUpdate)], updateMerchantProfileController);
 // Admin-only routes
 router.get('/', [authMiddleware, adminMiddleware], getAllMerchants);
 router.post('/:id/verify', [authMiddleware, adminMiddleware], verifyMerchantAccount);

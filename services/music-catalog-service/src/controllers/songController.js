@@ -10,27 +10,39 @@ const axios = require('axios');
 
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://127.0.0.1:3001';
 
-// Get all songs (Trending from Audius)
+// Get all songs (Trending from Audius or local platform)
 async function getAllSongs(req, res) {
-    const { time, genre } = req.query;
+    const { time, genre, source, limit = 20 } = req.query;
     const cache = req.app.locals.cache;
-    const cacheKey = `audius:trending:${time || 'allTime'}:${genre || 'all'}:20`;
+    const cacheKey = `music:trending:${source || 'audius'}:${time || 'allTime'}:${genre || 'all'}:${limit}`;
 
-    let isCached = false;
     if (cache) {
         try {
             const cached = await cache.get(cacheKey);
-            if (cached) isCached = true;
-        } catch (err) {
-            // Log but continue
-        }
+            if (cached) return res.json({ message: 'Songs retrieved (cached)', songs: cached });
+        } catch (err) { }
     }
 
-    const tracks = await getTrendingTracks(20, time, genre);
-    const songs = tracks.map(mapAudiusTrack).filter(Boolean);
+    let songs = [];
+
+    if (source === 'local') {
+        const { Song, Artist } = require('../models');
+        songs = await Song.findAll({
+            include: [{ model: Artist, as: 'artist', attributes: ['name'] }],
+            order: [['playCount', 'DESC'], ['likeCount', 'DESC']],
+            limit: parseInt(limit)
+        });
+    } else {
+        const tracks = await getTrendingTracks(parseInt(limit), time, genre);
+        songs = tracks.map(mapAudiusTrack).filter(Boolean);
+    }
+
+    if (cache && songs.length > 0) {
+        await cache.set(cacheKey, songs, 300).catch(() => null);
+    }
 
     res.json({
-        message: isCached ? 'Songs retrieved (cached)' : 'Songs retrieved successfully',
+        message: 'Songs retrieved successfully',
         songs
     });
 }
@@ -65,8 +77,10 @@ async function getSongById(req, res) {
 
     // Fallback to local database
     try {
-        const { Song } = require('../models');
-        const localSong = await Song.findByPk(songId);
+        const { Song, Artist } = require('../models');
+        const localSong = await Song.findByPk(songId, {
+            include: [{ model: Artist, as: 'artist', attributes: ['name'] }]
+        });
         if (localSong) {
             return res.json({
                 message: 'Song retrieved from local database',

@@ -57,16 +57,20 @@ async function getRecentSongs(userId, limit = 10) {
 }
 
 // Get most played songs within a time period
-async function getTopSongs(userId, limit = 10, days = 30) {
+async function getTopSongs(userId = null, limit = 10, days = 30) {
     const since = new Date();
     since.setDate(since.getDate() - days);
 
+    const matchQuery = {
+        timestamp: { $gte: since }
+    };
+    if (userId) {
+        matchQuery.userId = userId;
+    }
+
     const topSongs = await ListeningHistory.aggregate([
         {
-            $match: {
-                userId,
-                timestamp: { $gte: since }
-            }
+            $match: matchQuery
         },
         {
             $group: {

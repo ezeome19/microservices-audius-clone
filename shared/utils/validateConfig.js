@@ -4,7 +4,9 @@
  */
 module.exports = function validateConfig() {
     const requiredVars = [
-        'JWT_PRIVATE_KEY'
+        'JWT_PRIVATE_KEY',
+        'FLUTTERWAVE_PUBLIC_KEY',
+        'FLUTTERWAVE_SECRET_KEY'
     ];
 
     const missing = requiredVars.filter(varName => !process.env[varName]);

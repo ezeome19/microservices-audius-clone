@@ -16,8 +16,9 @@ async function checkPlaybackLimit(req, res, next) {
         });
 
         const userTier = paymentRes.data.tier || 'free'; // Default to free
+        const shouldLogPlay = req.query.logPlay === 'true';
 
-        if (userTier === 'free') {
+        if (shouldLogPlay && userTier === 'free') {
             // 2. Count plays in the last 24 hours
             const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
             const playCount = await StreamEntry.count({
@@ -36,11 +37,13 @@ async function checkPlaybackLimit(req, res, next) {
             }
         }
 
-        // 3. Log this play
-        await StreamEntry.create({
-            userId,
-            songId: req.params.id || req.body.songId
-        });
+        // 3. Log this play only if requested
+        if (shouldLogPlay) {
+            await StreamEntry.create({
+                userId,
+                songId: req.params.id || req.body.songId
+            });
+        }
 
         next();
     } catch (error) {

@@ -151,7 +151,8 @@ async function createComment(req, res) {
             content: comment.content,
             userName: userName,
             createdAt: comment.createdAt,
-            updatedAt: comment.updatedAt
+            updatedAt: comment.updatedAt,
+            replies: [] // Initialize for consistency
         }
     });
 }
@@ -220,14 +221,33 @@ async function getComments(req, res) {
             createdAt: comment.createdAt,
             updatedAt: comment.updatedAt,
             likeCount: likeCount,
-            isLiked: isLikedByUser
+            isLiked: isLikedByUser,
+            replies: [] // Initialize replies array
         };
     }));
+
+    // Build nested tree structure
+    const commentMap = {};
+    const nestedComments = [];
+
+    // First pass: put all comments in a map
+    formattedComments.forEach(comment => {
+        commentMap[comment.id] = comment;
+    });
+
+    // Second pass: nest replies or add to top-level
+    formattedComments.forEach(comment => {
+        if (comment.parentId && commentMap[comment.parentId]) {
+            commentMap[comment.parentId].replies.push(comment);
+        } else if (!comment.parentId) {
+            nestedComments.push(comment);
+        }
+    });
 
     res.json({
         message: 'Comments retrieved successfully',
         songId: songId,
-        comments: formattedComments
+        comments: nestedComments
     });
 }
 

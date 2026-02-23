@@ -5,6 +5,9 @@ const { authMiddleware, adminMiddleware, errorMiddleware } = require('../../../.
 module.exports = function (app) {
     app.use(express.json());
 
+    // Health check
+    app.get('/health', (req, res) => res.json({ status: 'ok', service: 'analytics' }));
+
     // Analytics routes (Admin only)
     const analyticsRoutes = require('../routes/analytics');
     app.use('/', authMiddleware, adminMiddleware, analyticsRoutes);

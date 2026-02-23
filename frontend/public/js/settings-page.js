@@ -221,7 +221,11 @@ async function loadUserSettings() {
             const upgradeCard = document.getElementById('merchantUpgradeCard');
             const statusInfo = document.getElementById('merchantStatusInfo');
 
-            if (user.userType === 'merchant') {
+            if (user.isAdmin) {
+                // Admins don't need upgrade or artist status cards
+                if (upgradeCard) upgradeCard.style.display = 'none';
+                if (statusInfo) statusInfo.style.display = 'none';
+            } else if (user.userType === 'merchant') {
                 if (upgradeCard) upgradeCard.style.display = 'none';
                 if (statusInfo) statusInfo.style.display = 'block';
             } else {

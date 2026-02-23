@@ -228,6 +228,9 @@ async function artistRoutes(fastify, options) {
                                                     </span>
                                                     <span title="Repost"><i class="fa-solid fa-retweet"></i> ${track.repostCount || 0}</span>
                                                     <span title="Favorite"><i class="fa-solid fa-heart"></i> ${track.favoriteCount || track.likeCount || 0}</span>
+                                                    <span title="Comments" onclick="event.stopPropagation(); toggleComments('${track.id || track._id}')" style="cursor: pointer;">
+                                                        <i class="fa-regular fa-comment"></i> <span class="comment-count-${track.id || track._id}">0</span>
+                                                    </span>
                                                 </div>
                                             </div>
                                             <div class="track-plays">

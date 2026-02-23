@@ -1,12 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware } = require('../../../../shared');
+const { authMiddleware, adminMiddleware } = require('../../../../shared');
 const {
     getArtistRevenue,
     getTopSupporters,
     getTransactionHistory,
-    getRevenueBreakdown
+    getRevenueBreakdown,
+    getPlatformRevenue,
+    getTipLeaderboard
 } = require('../controllers/analyticsController');
+
+// Platform-wide admin analytics
+router.get('/platform/revenue', [authMiddleware, adminMiddleware], getPlatformRevenue);
+router.get('/platform/tips', [authMiddleware, adminMiddleware], getTipLeaderboard);
 
 // Get artist revenue overview
 router.get('/artist/:artistId/revenue', authMiddleware, getArtistRevenue);

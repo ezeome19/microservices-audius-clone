@@ -66,6 +66,10 @@
                     style="color: var(--text-secondary); padding: 10px 0; display: flex; align-items: center; gap: 12px;">
                     <i class="fa-solid fa-users-gear" style="width: 20px;"></i> User Management
                 </a>
+                <a href="#admin-analytics" class="nav-item" data-tab="admin-analytics"
+                    style="color: var(--text-secondary); padding: 10px 0; display: flex; align-items: center; gap: 12px;">
+                    <i class="fa-solid fa-chart-line" style="width: 20px;"></i> Analytics
+                </a>
                 {{/if}}
 
                 {{#if (or (eq user.userType 'merchant') user.isAdmin)}}
@@ -86,6 +90,7 @@
                 </a>
                 {{/if}}
 
+                {{#unless user.isAdmin}}
                 <p
                     style="text-transform: uppercase; font-size: 0.7rem; color: var(--text-muted); letter-spacing: 1px; margin: 20px 0 10px 0;">
                     Finances</p>
@@ -97,6 +102,7 @@
                     style="color: var(--text-secondary); padding: 10px 0; display: flex; align-items: center; gap: 12px;">
                     <i class="fa-solid fa-coins" style="width: 20px;"></i> Coins
                 </a>
+                {{/unless}}
 
                 <p
                     style="text-transform: uppercase; font-size: 0.7rem; color: var(--text-muted); letter-spacing: 1px; margin: 20px 0 10px 0;">
@@ -118,75 +124,20 @@
 
             <div class="user-area"
                 style="margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                {{#unless user.isAdmin}}
                 <p style="color: var(--text-secondary); font-size: 0.9rem;">Start Listening</p>
                 <div style="margin-top: 10px; margin-bottom: 10px;">
                     <button id="subscribeBtn" class="btn btn-primary"
                         style="width: 100%; font-size: 0.9rem; padding: 8px;">Subscribe to Premium</button>
                 </div>
+                {{/unless}}
                 <a href="/auth/logout" style="font-size: 0.8rem; color: var(--text-muted);">Log Out</a>
             </div>
         </aside>
 
         <!-- Main Content -->
         <main class="main-content">
-            <script>
-                document.getElementById('subscribeBtn').addEventListener('click', async () => {
-                    try {
-                        const btn = document.getElementById('subscribeBtn');
-                        btn.disabled = true;
-                        btn.innerText = 'Processing...';
-
-                        const response = await fetch('/api/payment/initialize', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ amount: 5000 })
-                        });
-
-                        const result = await response.json();
-
-                        if (result.status === 'success' && result.data && result.data.publicKey) {
-                            // Use Inline Flow
-                            FlutterwaveCheckout({
-                                public_key: result.data.publicKey,
-                                tx_ref: result.data.tx_ref,
-                                amount: result.data.amount,
-                                currency: result.data.currency,
-                                payment_options: "card, base, mobilemoneyghana, ussd",
-                                customer: {
-                                    email: result.data.customer.email,
-                                    name: result.data.customer.name,
-                                },
-                                callback: function (data) {
-                                    console.log("Subscription successful", data);
-                                    window.location.href = `/payment/verify?transaction_id=${result.data.tx_ref}&status=successful`;
-                                },
-                                onclose: function () {
-                                    btn.disabled = false;
-                                    btn.innerText = 'Subscribe to Premium';
-                                },
-                                customizations: {
-                                    title: "Audius Premium",
-                                    description: "Subscription to Premium features",
-                                    logo: "https://audius.co/logo.png",
-                                },
-                            });
-                        } else if (result.status === 'success' && result.data && result.data.link) {
-                            window.location.href = result.data.link;
-                        } else {
-                            alert('Payment initialization failed: ' + (result.message || 'Unknown error'));
-                            btn.disabled = false;
-                            btn.innerText = 'Subscribe to Premium';
-                        }
-                    } catch (error) {
-                        console.error('Payment error:', error);
-                        alert('An error occurred. Please try again.');
-                        document.getElementById('subscribeBtn').disabled = false;
-                        document.getElementById('subscribeBtn').innerText = 'Subscribe to Premium';
-                    }
-                });
-            </script>
+            <!-- Sidebar Subscription script removed - moved to dashboard.js -->
             <header style="margin-bottom: 32px; display: flex; justify-content: space-between; align-items: center;">
                 <div class="search-bar" style="flex: 1; max-width: 600px;">
                     <input type="text" placeholder="Search for artists, tracks, playlists" id="globalSearch"
@@ -274,10 +225,12 @@
         <!-- Player will be injected by AudioPlayer.js -->
     </div>
     {{> commentModal}}
+    {{#unless user.isAdmin}}
     {{> upgradeToMerchantModal}}
+    {{/unless}}
+    <script src="/public/js/dashboard.js"></script>
     <script src="/public/js/audio-player.js"></script>
     <script src="/public/js/personalized-feed.js"></script>
-    <script src="/public/js/dashboard.js"></script>
     <script src="/public/js/tip-modal.js"></script>
     <script src="/public/js/settings-page.js"></script>
     <script src="/public/js/follow-artist.js"></script>

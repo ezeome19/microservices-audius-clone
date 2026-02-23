@@ -10,6 +10,9 @@ const { errorMiddleware } = require('../../../../shared');
 module.exports = function (app) {
     app.use(express.json());
 
+    // Health check
+    app.get('/health', (req, res) => res.json({ status: 'ok', service: 'music' }));
+
     // Create a router for /api/music scope
     const apiRouter = express.Router();
 

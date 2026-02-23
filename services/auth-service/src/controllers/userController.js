@@ -11,7 +11,9 @@ const {
     deleteUser: deleteUserService,
     updateUserPreferences,
     upgradeUserToMerchant,
-    findAllUsers
+    findAllUsers,
+    updateUserRole: updateUserRoleService,
+    verifyUserEmail: verifyUserEmailService
 } = require('../services/userServices');
 
 // User signup
@@ -200,6 +202,43 @@ async function getAllUsers(req, res) {
     });
 }
 
+// Admin only: Change user role
+async function changeUserRole(req, res) {
+    const { userType, isAdmin } = req.body;
+
+    if (userType === undefined && isAdmin === undefined) {
+        return res.status(400).json({ message: 'Must provide userType or isAdmin' });
+    }
+
+    // Prevent admin from demoting themselves
+    if (req.params.id === req.user.id && isAdmin === false) {
+        return res.status(400).json({ message: 'You cannot remove your own admin access' });
+    }
+
+    const user = await updateUserRoleService(req.params.id, { userType, isAdmin });
+    if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({
+        message: 'User role updated successfully',
+        user: _.pick(user, ['id', 'name', 'email', 'userType', 'isAdmin'])
+    });
+}
+
+// Admin only: Verify user email
+async function adminVerifyEmail(req, res) {
+    const user = await verifyUserEmailService(req.params.id);
+    if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({
+        message: 'User email verified successfully',
+        user: _.pick(user, ['id', 'email', 'isEmailVerified'])
+    });
+}
+
 module.exports = {
     signupUser,
     loginUser,
@@ -212,5 +251,7 @@ module.exports = {
     getPreferences,
     updatePreferences,
     upgradeToMerchant,
-    getAllUsers
+    getAllUsers,
+    changeUserRole,
+    adminVerifyEmail
 };

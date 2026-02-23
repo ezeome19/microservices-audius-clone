@@ -10,6 +10,7 @@ async function initializeTip(req, res) {
         const userId = req.user.id;
 
         console.log(`[Payment Service] initializeTip: artistId=${artistId}, amount=${amount}, currency=${currency}, userId=${userId}`);
+        console.log(`[Payment Service] Flutterwave Public Key present: ${!!process.env.FLUTTERWAVE_PUBLIC_KEY}`);
 
         // Sanitize message to prevent XSS
         const sanitizedMessage = message ? sanitizeHtml(message, {

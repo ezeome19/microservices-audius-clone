@@ -39,16 +39,45 @@ async function getRecent(req, res) {
     });
 }
 
+const axios = require('axios');
+const MUSIC_SERVICE_URL = process.env.MUSIC_SERVICE_URL || 'http://127.0.0.1:3002';
+
 // Get most played songs
 async function getTop(req, res) {
     const limit = parseInt(req.query.limit) || 10;
     const days = parseInt(req.query.days) || 30;
+    const isGlobal = req.query.global === 'true' && req.user.isAdmin;
 
-    const result = await getTopSongs(req.user.id, limit, days);
-    res.json({
-        message: 'Top songs retrieved successfully',
-        ...result
-    });
+    try {
+        const { topSongs, period } = await getTopSongs(isGlobal ? null : req.user.id, limit, days);
+
+        // Enrich with song metadata from music-catalog-service
+        const enrichedSongs = await Promise.all(topSongs.map(async (item) => {
+            try {
+                const songRes = await axios.get(`${MUSIC_SERVICE_URL}/${item._id}`, {
+                    headers: { 'x-auth-token': req.headers['x-auth-token'] }
+                });
+                if (songRes.data && songRes.data.song) {
+                    return {
+                        ...item,
+                        ...songRes.data.song
+                    };
+                }
+            } catch (err) {
+                logger.warn(`Failed to enrich song ${item._id}: ${err.message}`);
+            }
+            return item;
+        }));
+
+        res.json({
+            message: `Top songs (${isGlobal ? 'Global' : 'Personal'}) retrieved successfully`,
+            topSongs: enrichedSongs,
+            period
+        });
+    } catch (error) {
+        logger.error('Error in getTop:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
 }
 
 module.exports = {

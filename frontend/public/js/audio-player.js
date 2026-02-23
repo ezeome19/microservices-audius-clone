@@ -6,10 +6,12 @@ class AudioPlayer {
         this.isPlaying = false;
         this.playlist = [];
         this.currentIndex = 0;
+        this.isMinimized = false;
 
         this.initializePlayer();
         this.attachEventListeners();
         this.restorePlayerState();
+        this.restoreMinimizeState();
     }
 
     getScopedKey(key) {
@@ -37,9 +39,19 @@ class AudioPlayer {
 
     createPlayerUI() {
         const playerHTML = `
+            <style>
+                #audioPlayer { transition: height 0.3s ease, padding 0.3s ease; }
+                #audioPlayer.minimized { height: 40px !important; padding: 0 16px !important; grid-template-columns: 1fr auto !important; }
+                #audioPlayer.minimized .player-full-section { display: none !important; }
+                #audioPlayer.minimized .player-mini-section { display: flex !important; }
+                .player-mini-section { display: none; align-items: center; gap: 12px; }
+                #playerMinimizeBtn { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 0.9rem; padding: 6px; transition: color 0.2s, transform 0.3s; }
+                #playerMinimizeBtn:hover { color: var(--text-primary); }
+                #audioPlayer.minimized #playerMinimizeBtn { transform: rotate(180deg); }
+            </style>
             <div id="audioPlayer" style="position: fixed; bottom: 0; left: 0; right: 0; height: 90px; background: var(--bg-card); border-top: 1px solid var(--border-color); display: grid; grid-template-columns: 1fr 2fr 1fr; align-items: center; padding: 0 32px; z-index: 999;">
                 <!-- Left: Song Info & Like Button -->
-                <div style="display: flex; align-items: center; gap: 16px; justify-self: start;">
+                <div class="player-full-section" style="display: flex; align-items: center; gap: 16px; justify-self: start;">
                     <div id="playerCover" style="width: 56px; height: 56px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden; flex-shrink: 0;">
                         <img id="playerCoverImg" style="width: 100%; height: 100%; object-fit: cover; display: none;" onerror="this.src='https://placehold.co/150?text=No+Cover'">
                     </div>
@@ -53,7 +65,7 @@ class AudioPlayer {
                 </div>
 
                 <!-- Center: Controls & Progress -->
-                <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 600px; justify-self: center;">
+                <div class="player-full-section" style="display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 600px; justify-self: center;">
                     <div style="display: flex; justify-content: center; gap: 24px; align-items: center;">
                         <button id="prevBtn" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1.2rem; transition: color 0.2s;" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">⏮</button>
                         <button id="playPauseBtn" style="width: 42px; height: 42px; border-radius: 50%; background: var(--accent-gradient); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.1rem; box-shadow: 0 4px 12px rgba(126, 27, 204, 0.3); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">▶</button>
@@ -70,12 +82,23 @@ class AudioPlayer {
                 </div>
 
                 <!-- Right: Volume & Extra Controls -->
-                <div style="display: flex; align-items: center; gap: 12px; justify-self: end; min-width: 180px; justify-content: flex-end;">
+                <div class="player-full-section" style="display: flex; align-items: center; gap: 12px; justify-self: end; min-width: 180px; justify-content: flex-end;">
+                    <button id="playerMinimizeBtn" title="Minimize player"><i class="fa-solid fa-chevron-down"></i></button>
                     <button style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1rem;"><i class="fa-solid fa-list-ul"></i></button>
                     <div style="display: flex; align-items: center; gap: 8px; width: 120px;">
                         <span id="volumeIcon" style="font-size: 1rem; color: var(--text-secondary);">🔊</span>
                         <input type="range" id="volumeSlider" min="0" max="100" value="70" style="flex: 1; cursor: pointer; accent-color: var(--accent-primary);">
                     </div>
+                </div>
+
+                <!-- Mini bar (visible when minimized) -->
+                <div class="player-mini-section">
+                    <span id="miniTitle" style="font-weight: 600; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;">No song playing</span>
+                    <span id="miniArtist" style="color: var(--text-secondary); font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;"></span>
+                </div>
+                <div class="player-mini-section" style="justify-content: flex-end; gap: 8px;">
+                    <button id="miniPlayPauseBtn" style="width: 28px; height: 28px; border-radius: 50%; background: var(--accent-gradient); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem;">▶</button>
+                    <button id="playerExpandBtn" title="Expand player" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 0.9rem; padding: 6px;"><i class="fa-solid fa-chevron-up"></i></button>
                 </div>
             </div>
         `;
@@ -87,6 +110,19 @@ class AudioPlayer {
         // Play/Pause
         document.getElementById('playPauseBtn').addEventListener('click', () => {
             this.togglePlayPause();
+        });
+
+        // Mini play/pause
+        document.getElementById('miniPlayPauseBtn').addEventListener('click', () => {
+            this.togglePlayPause();
+        });
+
+        // Minimize / Expand
+        document.getElementById('playerMinimizeBtn').addEventListener('click', () => {
+            this.toggleMinimize();
+        });
+        document.getElementById('playerExpandBtn').addEventListener('click', () => {
+            this.toggleMinimize();
         });
 
         // Previous/Next
@@ -161,7 +197,9 @@ class AudioPlayer {
         console.log('[AudioPlayer] Loading song:', songId, 'autoPlay:', autoPlay);
         try {
             // Fetch song details - Gateway will inject x-auth-token from cookie
-            const response = await fetch(`/api/music/songs/${songId}`);
+            // Append logPlay=true only if we are actually intending to play it
+            const url = `/api/music/songs/${songId}${autoPlay ? '?logPlay=true' : ''}`;
+            const response = await (window.authFetch || fetch)(url);
 
             if (!response.ok) {
                 if (response.status === 403) {
@@ -260,7 +298,7 @@ class AudioPlayer {
         // Wait for currentUserId to be populated if dashboard.js is doing it
         if (!window.currentUserId) {
             try {
-                const response = await fetch(`${window.location.origin}/api/auth/me`);
+                const response = await (window.authFetch || fetch)(`${window.location.origin}/api/auth/me`);
                 if (response.ok) {
                     const data = await response.json();
                     window.currentUserId = data.user?.id;
@@ -329,6 +367,7 @@ class AudioPlayer {
         this.audio.play();
         this.isPlaying = true;
         document.getElementById('playPauseBtn').textContent = '⏸';
+        document.getElementById('miniPlayPauseBtn').textContent = '⏸';
         window.dispatchEvent(new CustomEvent('playback-state-changed', {
             detail: { isPlaying: true, songId: this.currentSong?.id || this.currentSong?._id }
         }));
@@ -338,6 +377,7 @@ class AudioPlayer {
         this.audio.pause();
         this.isPlaying = false;
         document.getElementById('playPauseBtn').textContent = '▶';
+        document.getElementById('miniPlayPauseBtn').textContent = '▶';
         window.dispatchEvent(new CustomEvent('playback-state-changed', {
             detail: { isPlaying: false, songId: this.currentSong?.id || this.currentSong?._id }
         }));
@@ -400,7 +440,7 @@ class AudioPlayer {
 
     async trackPlay(songId, duration) {
         try {
-            await fetch(`${window.location.origin}/api/stream/history`, {
+            await (window.authFetch || fetch)(`${window.location.origin}/api/stream/history`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -436,7 +476,7 @@ class AudioPlayer {
 
         try {
             const method = isLiked ? 'DELETE' : 'POST';
-            const response = await fetch(`${window.location.origin}/api/social/like/${songId}`, {
+            const response = await (window.authFetch || fetch)(`${window.location.origin}/api/social/like/${songId}`, {
                 method
             });
 
@@ -495,6 +535,25 @@ class AudioPlayer {
         }
     }
 
+    toggleMinimize() {
+        const player = document.getElementById('audioPlayer');
+        this.isMinimized = !this.isMinimized;
+        player.classList.toggle('minimized', this.isMinimized);
+        // Sync mini bar text
+        const title = document.getElementById('playerTitle')?.textContent || 'No song playing';
+        const artist = document.getElementById('playerArtist')?.textContent || '';
+        document.getElementById('miniTitle').textContent = title;
+        document.getElementById('miniArtist').textContent = artist;
+        localStorage.setItem(this.getScopedKey('playerMinimized'), this.isMinimized ? '1' : '0');
+    }
+
+    restoreMinimizeState() {
+        const saved = localStorage.getItem(this.getScopedKey('playerMinimized'));
+        if (saved === '1') {
+            this.isMinimized = true;
+            document.getElementById('audioPlayer')?.classList.add('minimized');
+        }
+    }
 }
 
 // Initialize player when DOM is ready

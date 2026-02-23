@@ -124,13 +124,18 @@ window.processTip = async function (artistId, artistName) {
         return;
     }
 
+    const sendTipBtn = document.getElementById('sendTipBtn');
+    if (sendTipBtn) {
+        sendTipBtn.disabled = true;
+        sendTipBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...';
+    }
+
     try {
         // Call backend to initiate payment
-        const response = await fetch(`${API_URL}/api/payment/tips/${artistId}`, {
+        const response = await (window.authFetch || fetch)(`${API_URL}/api/payment/tips/${artistId}`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'x-auth-token': getCookie('token')
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 artistId,
@@ -139,18 +144,28 @@ window.processTip = async function (artistId, artistName) {
             })
         });
 
-        if (response.ok) {
-            const data = await response.json();
-            // Redirect to Flutterwave payment page
-            if (data.paymentLink) {
-                window.location.href = data.paymentLink;
-            }
+        const data = await response.json();
+
+        if (response.ok && data.paymentLink) {
+            // Use Custom Modal for Flutterwave Hosted Checkout
+            window.showFlutterwaveCustomModal(data, 'artist');
+
+            // Close the tip modal
+            if (typeof closeTipModal === 'function') closeTipModal();
         } else {
-            const errorData = await response.json();
-            alert(`Failed to initiate payment: ${errorData.message || 'Please try again.'}`);
+            console.error("Tip initialization failed:", data);
+            window.alert("Failed to initialize payment. Please try again.");
+            if (sendTipBtn) {
+                sendTipBtn.disabled = false;
+                sendTipBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Tip';
+            }
         }
     } catch (error) {
-        console.error('Tip processing error:', error);
-        alert('An error occurred. Please try again.');
+        console.error("Tip processing error:", error);
+        window.alert("An error occurred. Please try again.");
+        if (sendTipBtn) {
+            sendTipBtn.disabled = false;
+            sendTipBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Tip';
+        }
     }
 };

@@ -78,20 +78,27 @@ async function updateMerchantProfileController(req, res) {
 
 // Get all merchants (admin only)
 async function getAllMerchants(req, res) {
-    const { isVerified } = req.query;
-    const filters = {};
+    try {
+        const { isVerified } = req.query;
+        const filters = {};
 
-    if (isVerified !== undefined) {
-        filters.isVerified = isVerified === 'true';
+        if (isVerified !== undefined) {
+            filters.isVerified = isVerified === 'true';
+        }
+
+        console.log('[MerchantController] Fetching merchants with filters:', JSON.stringify(filters));
+        const merchants = await findAllMerchants(filters);
+        console.log('[MerchantController] Found merchants count:', merchants.length);
+
+        res.json({
+            message: 'Merchants retrieved successfully',
+            count: merchants.length,
+            merchants
+        });
+    } catch (error) {
+        console.error('[MerchantController] Error in getAllMerchants:', error);
+        res.status(500).json({ message: 'Internal server error while fetching merchants' });
     }
-
-    const merchants = await findAllMerchants(filters);
-
-    res.json({
-        message: 'Merchants retrieved successfully',
-        count: merchants.length,
-        merchants
-    });
 }
 
 // Verify merchant account (admin only)
